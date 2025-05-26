@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Monde Réaliste</title>
+  <title>Puzzle Géographique - Images Garanties</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -9,7 +9,7 @@
       background: #f0f8ff;
       padding: 20px;
     }
-    #world-map-container {
+    #map-container {
       position: relative;
       display: inline-block;
       margin: 20px auto;
@@ -27,17 +27,21 @@
       opacity: 0.9;
       transition: transform 0.2s;
       z-index: 10;
+      background-size: contain;
+      background-repeat: no-repeat;
+      height: 100px;
     }
-    .country-shape:hover {
-      transform: scale(1.05);
+    #france-shape { background-image: url('https://i.postimg.cc/3wZQYbKv/france.png'); }
+    #italy-shape { background-image: url('https://i.postimg.cc/8zH2W3J2/italy.png'); }
+    #brazil-shape { background-image: url('https://i.postimg.cc/8CJXWQYQ/brazil.png'); }
+    .country-target {
+      position: absolute;
+      background-color: rgba(46, 204, 113, 0.3);
+      border: 2px dashed #27ae60;
+      display: none;
+      z-index: 5;
     }
-    .correct {
-      filter: drop-shadow(0 0 8px #2ecc71);
-      opacity: 1 !important;
-    }
-    #controls {
-      margin: 20px;
-    }
+    #controls { margin: 20px; }
     button {
       background: #3498db;
       color: white;
@@ -57,37 +61,31 @@
   </style>
 </head>
 <body>
-  <h1>Puzzle Géographique Avancé</h1>
-  <p>Glisse les formes des pays sur leurs continents !</p>
-  
+  <h1>Puzzle Géographique</h1>
   <div id="controls">
     <button id="show-targets">Afficher les cibles</button>
     <button id="check-answers">Vérifier</button>
   </div>
-  
   <div id="feedback"></div>
 
-  <!-- Carte du monde interactive -->
-  <div id="world-map-container">
+  <div id="map-container">
+    <!-- Carte du monde -->
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png" 
          id="world-map" alt="Carte du monde">
     
-    <!-- Cibles invisibles (pour vérification) -->
-    <div class="country-target" id="france-target" style="left:42%; top:31%;"></div>
-    <div class="country-target" id="italy-target" style="left:44%; top:33%;"></div>
-    <div class="country-target" id="brazil-target" style="left:30%; top:55%;"></div>
+    <!-- Cibles (contours des pays) -->
+    <div class="country-target" id="france-target" style="width:120px; height:100px; left:42%; top:31%;"></div>
+    <div class="country-target" id="italy-target" style="width:100px; height:80px; left:44%; top:33%;"></div>
+    <div class="country-target" id="brazil-target" style="width:140px; height:120px; left:30%; top:55%;"></div>
     
-    <!-- Formes des pays à déplacer -->
-    <img src="https://i.imgur.com/FRANCE_OUTLINE.png" class="country-shape" id="france" 
-         style="width:120px; left:10%; top:10%;">
-    <img src="https://i.imgur.com/ITALY_OUTLINE.png" class="country-shape" id="italy" 
-         style="width:100px; left:15%; top:15%;">
-    <img src="https://i.imgur.com/BRAZIL_OUTLINE.png" class="country-shape" id="brazil" 
-         style="width:140px; left:10%; top:40%;">
+    <!-- Formes des pays (drag & drop) -->
+    <div class="country-shape" id="france-shape" style="left:10%; top:10%; width:120px; height:100px;"></div>
+    <div class="country-shape" id="italy-shape" style="left:15%; top:15%; width:100px; height:80px;"></div>
+    <div class="country-shape" id="brazil-shape" style="left:10%; top:40%; width:140px; height:120px;"></div>
   </div>
 
   <script>
-    // Configuration des pays
+    // Configuration
     const countries = {
       france: { target: "france-target", name: "France" },
       italy:  { target: "italy-target",  name: "Italie" },
@@ -110,24 +108,16 @@
     }
 
     function initControls() {
-      // Bouton afficher/masquer les cibles
       document.getElementById('show-targets').addEventListener('click', () => {
         targetsVisible = !targetsVisible;
-        updateTargetsVisibility();
+        document.querySelectorAll('.country-target').forEach(target => {
+          target.style.display = targetsVisible ? 'block' : 'none';
+        });
+        document.getElementById('show-targets').textContent = 
+          targetsVisible ? 'Masquer les cibles' : 'Afficher les cibles';
       });
       
-      // Bouton vérification
       document.getElementById('check-answers').addEventListener('click', checkAnswers);
-    }
-
-    function updateTargetsVisibility() {
-      const targets = document.querySelectorAll('.country-target');
-      targets.forEach(target => {
-        target.style.backgroundColor = targetsVisible ? 'rgba(46, 204, 113, 0.3)' : 'transparent';
-        target.style.border = targetsVisible ? '2px dashed #27ae60' : 'none';
-      });
-      document.getElementById('show-targets').textContent = 
-        targetsVisible ? 'Masquer les cibles' : 'Afficher les cibles';
     }
 
     function startDrag(e) {
@@ -139,7 +129,7 @@
       const startY = e.clientY;
       const startLeft = parseFloat(shape.style.left);
       const startTop = parseFloat(shape.style.top);
-      const mapRect = document.getElementById('world-map-container').getBoundingClientRect();
+      const mapRect = document.getElementById('map-container').getBoundingClientRect();
 
       function move(e) {
         const newLeft = startLeft + (e.clientX - startX) / mapRect.width * 100;
@@ -160,32 +150,28 @@
 
     function checkAnswers() {
       let correctCount = 0;
-      const feedback = document.getElementById('feedback');
       
       Object.keys(countries).forEach(countryId => {
-        const shape = document.getElementById(countryId);
-        const target = document.getElementById(countries[countryId].target);
+        const shape = document.getElementById(`${countryId}-shape`);
+        const target = document.getElementById(`${countryId}-target`);
         
         const shapeRect = shape.getBoundingClientRect();
         const targetRect = target.getBoundingClientRect();
         
         const overlap = calculateOverlap(shapeRect, targetRect);
         
-        if (overlap > 0.6) { // 60% de superposition nécessaire
-          shape.classList.add('correct');
+        if (overlap > 0.6) {
+          shape.style.border = '3px solid #2ecc71';
           correctCount++;
         } else {
-          shape.classList.remove('correct');
+          shape.style.border = '3px solid #e74c3c';
         }
       });
       
       score = correctCount;
+      const feedback = document.getElementById('feedback');
       feedback.textContent = `Score : ${score}/${Object.keys(countries).length}`;
       feedback.style.color = score === Object.keys(countries).length ? '#27ae60' : '#e67e22';
-      
-      if (score === Object.keys(countries).length) {
-        feedback.textContent = '🎉 Bravo ! Tous les pays sont bien placés !';
-      }
     }
 
     function calculateOverlap(rect1, rect2) {
