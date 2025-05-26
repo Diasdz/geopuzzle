@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Géographique Réaliste</title>
+  <title>Puzzle Monde Réaliste</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -9,26 +9,31 @@
       background: #f0f8ff;
       padding: 20px;
     }
+    #world-map-container {
+      position: relative;
+      display: inline-block;
+      margin: 20px auto;
+    }
     #world-map {
       width: 100%;
-      max-width: 1200px;
-      margin: 20px auto;
-      position: relative;
+      max-width: 1000px;
       border: 2px solid #333;
       border-radius: 8px;
     }
-    .country-piece {
+    .country-shape {
       position: absolute;
       cursor: grab;
+      width: 150px;
+      opacity: 0.9;
       transition: transform 0.2s;
       z-index: 10;
-      max-width: 150px;
     }
-    .country-mask {
-      position: absolute;
-      opacity: 0.4;
-      pointer-events: none;
-      z-index: 5;
+    .country-shape:hover {
+      transform: scale(1.05);
+    }
+    .correct {
+      filter: drop-shadow(0 0 8px #2ecc71);
+      opacity: 1 !important;
     }
     #controls {
       margin: 20px;
@@ -43,118 +48,156 @@
       font-size: 16px;
       margin: 0 10px;
     }
+    #feedback {
+      font-size: 20px;
+      height: 30px;
+      color: #e67e22;
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Puzzle Monde Réaliste</h1>
-  <p>Place chaque pays exactement sur son territoire !</p>
+  <h1>Puzzle Géographique Avancé</h1>
+  <p>Glisse les formes des pays sur leurs continents !</p>
   
   <div id="controls">
-    <button id="toggle-masks">Afficher les contours</button>
-    <button id="check">Vérifier</button>
+    <button id="show-targets">Afficher les cibles</button>
+    <button id="check-answers">Vérifier</button>
   </div>
+  
+  <div id="feedback"></div>
 
-  <!-- Carte du monde avec coordonnées réalistes -->
-  <div id="world-map">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1200px-World_map_-_low_resolution.svg.png" 
-         alt="Carte du monde" style="width:100%">
+  <!-- Carte du monde interactive -->
+  <div id="world-map-container">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1000px-World_map_-_low_resolution.svg.png" 
+         id="world-map" alt="Carte du monde">
     
-    <!-- Masques des pays (contours) -->
-    <img src="https://i.imgur.com/FRANCE_MASK.png" class="country-mask" id="france-mask" 
-         style="width:150px; left:42%; top:31%; display:none;">
-    <img src="https://i.imgur.com/ITALY_MASK.png" class="country-mask" id="italy-mask" 
-         style="width:120px; left:44%; top:33%; display:none;">
-    <img src="https://i.imgur.com/BRAZIL_MASK.png" class="country-mask" id="brazil-mask" 
-         style="width:180px; left:30%; top:55%; display:none;">
+    <!-- Cibles invisibles (pour vérification) -->
+    <div class="country-target" id="france-target" style="left:42%; top:31%;"></div>
+    <div class="country-target" id="italy-target" style="left:44%; top:33%;"></div>
+    <div class="country-target" id="brazil-target" style="left:30%; top:55%;"></div>
     
-    <!-- Drapeaux à placer -->
-    <img src="https://flagcdn.com/w160/fr.png" class="country-piece" id="france" 
-         style="width:100px; left:20%; top:20%;">
-    <img src="https://flagcdn.com/w160/it.png" class="country-piece" id="italy" 
-         style="width:90px; left:25%; top:25%;">
-    <img src="https://flagcdn.com/w160/br.png" class="country-piece" id="brazil" 
-         style="width:110px; left:20%; top:50%;">
+    <!-- Formes des pays à déplacer -->
+    <img src="https://i.imgur.com/FRANCE_OUTLINE.png" class="country-shape" id="france" 
+         style="width:120px; left:10%; top:10%;">
+    <img src="https://i.imgur.com/ITALY_OUTLINE.png" class="country-shape" id="italy" 
+         style="width:100px; left:15%; top:15%;">
+    <img src="https://i.imgur.com/BRAZIL_OUTLINE.png" class="country-shape" id="brazil" 
+         style="width:140px; left:10%; top:40%;">
   </div>
 
   <script>
-    // Positions réalistes (% de la largeur/hauteur de la carte)
-    const countryData = {
-      france: {
-        mask: "france-mask",
-        correctX: 42, // % from left
-        correctY: 31  // % from top
-      },
-      italy: {
-        mask: "italy-mask",
-        correctX: 44,
-        correctY: 33
-      },
-      brazil: {
-        mask: "brazil-mask",
-        correctX: 30,
-        correctY: 55
-      }
+    // Configuration des pays
+    const countries = {
+      france: { target: "france-target", name: "France" },
+      italy:  { target: "italy-target",  name: "Italie" },
+      brazil: { target: "brazil-target", name: "Brésil" }
     };
 
-    // Drag & Drop
-    document.querySelectorAll('.country-piece').forEach(piece => {
-      piece.addEventListener('mousedown', startDrag);
+    let targetsVisible = false;
+    let score = 0;
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      initDrag();
+      initControls();
     });
 
+    function initDrag() {
+      document.querySelectorAll('.country-shape').forEach(shape => {
+        shape.addEventListener('mousedown', startDrag);
+      });
+    }
+
+    function initControls() {
+      // Bouton afficher/masquer les cibles
+      document.getElementById('show-targets').addEventListener('click', () => {
+        targetsVisible = !targetsVisible;
+        updateTargetsVisibility();
+      });
+      
+      // Bouton vérification
+      document.getElementById('check-answers').addEventListener('click', checkAnswers);
+    }
+
+    function updateTargetsVisibility() {
+      const targets = document.querySelectorAll('.country-target');
+      targets.forEach(target => {
+        target.style.backgroundColor = targetsVisible ? 'rgba(46, 204, 113, 0.3)' : 'transparent';
+        target.style.border = targetsVisible ? '2px dashed #27ae60' : 'none';
+      });
+      document.getElementById('show-targets').textContent = 
+        targetsVisible ? 'Masquer les cibles' : 'Afficher les cibles';
+    }
+
     function startDrag(e) {
-      const piece = e.target;
+      e.preventDefault();
+      const shape = e.target;
+      shape.style.cursor = 'grabbing';
+
       const startX = e.clientX;
       const startY = e.clientY;
-      const startLeft = parseFloat(piece.style.left);
-      const startTop = parseFloat(piece.style.top);
-      const mapRect = document.getElementById('world-map').getBoundingClientRect();
-      const mapWidth = mapRect.width;
-      const mapHeight = mapRect.height;
+      const startLeft = parseFloat(shape.style.left);
+      const startTop = parseFloat(shape.style.top);
+      const mapRect = document.getElementById('world-map-container').getBoundingClientRect();
 
       function move(e) {
-        const newLeft = startLeft + (e.clientX - startX) / mapWidth * 100;
-        const newTop = startTop + (e.clientY - startY) / mapHeight * 100;
-        piece.style.left = `${Math.max(0, Math.min(90, newLeft))}%`;
-        piece.style.top = `${Math.max(0, Math.min(90, newTop))}%`;
+        const newLeft = startLeft + (e.clientX - startX) / mapRect.width * 100;
+        const newTop = startTop + (e.clientY - startY) / mapRect.height * 100;
+        shape.style.left = `${Math.max(0, Math.min(95, newLeft))}%`;
+        shape.style.top = `${Math.max(0, Math.min(95, newTop))}%`;
       }
 
       function stopDrag() {
         document.removeEventListener('mousemove', move);
         document.removeEventListener('mouseup', stopDrag);
+        shape.style.cursor = 'grab';
       }
 
       document.addEventListener('mousemove', move);
       document.addEventListener('mouseup', stopDrag);
     }
 
-    // Contrôles
-    document.getElementById('toggle-masks').addEventListener('click', () => {
-      const masks = document.querySelectorAll('.country-mask');
-      masks.forEach(mask => {
-        mask.style.display = mask.style.display === 'none' ? 'block' : 'none';
-      });
-    });
-
-    document.getElementById('check').addEventListener('click', () => {
+    function checkAnswers() {
       let correctCount = 0;
+      const feedback = document.getElementById('feedback');
       
-      Object.keys(countryData).forEach(countryId => {
-        const piece = document.getElementById(countryId);
-        const data = countryData[countryId];
-        const pieceLeft = parseFloat(piece.style.left);
-        const pieceTop = parseFloat(piece.style.top);
+      Object.keys(countries).forEach(countryId => {
+        const shape = document.getElementById(countryId);
+        const target = document.getElementById(countries[countryId].target);
         
-        if (Math.abs(pieceLeft - data.correctX) < 3 && 
-            Math.abs(pieceTop - data.correctY) < 3) {
-          piece.style.border = '2px solid #2ecc71';
+        const shapeRect = shape.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        
+        const overlap = calculateOverlap(shapeRect, targetRect);
+        
+        if (overlap > 0.6) { // 60% de superposition nécessaire
+          shape.classList.add('correct');
           correctCount++;
         } else {
-          piece.style.border = '2px solid #e74c3c';
+          shape.classList.remove('correct');
         }
       });
       
-      alert(`${correctCount} pays sur ${Object.keys(countryData).length} bien placés !`);
-    });
+      score = correctCount;
+      feedback.textContent = `Score : ${score}/${Object.keys(countries).length}`;
+      feedback.style.color = score === Object.keys(countries).length ? '#27ae60' : '#e67e22';
+      
+      if (score === Object.keys(countries).length) {
+        feedback.textContent = '🎉 Bravo ! Tous les pays sont bien placés !';
+      }
+    }
+
+    function calculateOverlap(rect1, rect2) {
+      const area1 = rect1.width * rect1.height;
+      const area2 = rect2.width * rect2.height;
+      
+      const xOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+      const yOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+      
+      const overlapArea = xOverlap * yOverlap;
+      return Math.max(overlapArea / area1, overlapArea / area2);
+    }
   </script>
 </body>
 </html>
