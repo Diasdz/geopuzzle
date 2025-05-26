@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Géographique avec Guides</title>
+  <title>Puzzle Géographique Réaliste</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -9,59 +9,26 @@
       background: #f0f8ff;
       padding: 20px;
     }
-    h1 {
-      color: #2c3e50;
-      margin-bottom: 10px;
-    }
-    #map-container {
+    #world-map {
+      width: 100%;
+      max-width: 1200px;
+      margin: 20px auto;
       position: relative;
-      display: inline-block;
+      border: 2px solid #333;
+      border-radius: 8px;
     }
-    #map {
-      background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Europe_blank_map.png');
-      background-size: cover;
-      width: 800px;
-      height: 600px;
-      border: 3px solid #34495e;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .piece {
-      width: 120px;
+    .country-piece {
       position: absolute;
       cursor: grab;
-      border: 3px dashed transparent;
       transition: transform 0.2s;
-      border-radius: 5px;
       z-index: 10;
+      max-width: 150px;
     }
-    .piece:hover {
-      transform: scale(1.05);
-    }
-    .correct {
-      border: 3px solid #27ae60 !important;
-      box-shadow: 0 0 10px #2ecc71;
-      cursor: default !important;
-    }
-    .outline {
+    .country-mask {
       position: absolute;
-      width: 120px;
-      opacity: 0.5;
+      opacity: 0.4;
       pointer-events: none;
       z-index: 5;
-      border-radius: 5px;
-    }
-    #score {
-      font-size: 24px;
-      font-weight: bold;
-      color: #e74c3c;
-      margin: 15px;
-    }
-    #message {
-      font-size: 20px;
-      height: 30px;
-      color: #3498db;
-      margin-bottom: 10px;
     }
     #controls {
       margin: 20px;
@@ -76,160 +43,118 @@
       font-size: 16px;
       margin: 0 10px;
     }
-    button:hover {
-      background: #2980b9;
-    }
   </style>
 </head>
 <body>
-  <h1>Puzzle Géographique</h1>
-  <div id="message">Place les drapeaux sur les zones ombrées !</div>
-  <div id="score">Pays corrects : 0/3</div>
+  <h1>Puzzle Monde Réaliste</h1>
+  <p>Place chaque pays exactement sur son territoire !</p>
   
   <div id="controls">
-    <button id="hint">Montrer les zones</button>
-    <button id="reset">Réinitialiser</button>
+    <button id="toggle-masks">Afficher les contours</button>
+    <button id="check">Vérifier</button>
   </div>
 
-  <div id="map-container">
-    <!-- Carte de base -->
-    <div id="map"></div>
+  <!-- Carte du monde avec coordonnées réalistes -->
+  <div id="world-map">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/1200px-World_map_-_low_resolution.svg.png" 
+         alt="Carte du monde" style="width:100%">
     
-    <!-- Contours des pays (guides) -->
-    <img src="https://i.imgur.com/JQK6hXz.png" class="outline" id="france-outline" style="left: 280px; top: 240px;">
-    <img src="https://i.imgur.com/VW7lQ9E.png" class="outline" id="spain-outline" style="left: 220px; top: 320px;">
-    <img src="https://i.imgur.com/9Rk4T2w.png" class="outline" id="italy-outline" style="left: 340px; top: 300px;">
+    <!-- Masques des pays (contours) -->
+    <img src="https://i.imgur.com/FRANCE_MASK.png" class="country-mask" id="france-mask" 
+         style="width:150px; left:42%; top:31%; display:none;">
+    <img src="https://i.imgur.com/ITALY_MASK.png" class="country-mask" id="italy-mask" 
+         style="width:120px; left:44%; top:33%; display:none;">
+    <img src="https://i.imgur.com/BRAZIL_MASK.png" class="country-mask" id="brazil-mask" 
+         style="width:180px; left:30%; top:55%; display:none;">
     
     <!-- Drapeaux à placer -->
-    <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
-    <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain">
-    <img src="https://flagcdn.com/w160/it.png" class="piece" id="italy">
+    <img src="https://flagcdn.com/w160/fr.png" class="country-piece" id="france" 
+         style="width:100px; left:20%; top:20%;">
+    <img src="https://flagcdn.com/w160/it.png" class="country-piece" id="italy" 
+         style="width:90px; left:25%; top:25%;">
+    <img src="https://flagcdn.com/w160/br.png" class="country-piece" id="brazil" 
+         style="width:110px; left:20%; top:50%;">
   </div>
 
   <script>
-    // Positions correctes (x, y)
-    const correctPositions = {
-      france: { x: 280, y: 240 },
-      spain:  { x: 220, y: 320 },
-      italy:  { x: 340, y: 300 }
+    // Positions réalistes (% de la largeur/hauteur de la carte)
+    const countryData = {
+      france: {
+        mask: "france-mask",
+        correctX: 42, // % from left
+        correctY: 31  // % from top
+      },
+      italy: {
+        mask: "italy-mask",
+        correctX: 44,
+        correctY: 33
+      },
+      brazil: {
+        mask: "brazil-mask",
+        correctX: 30,
+        correctY: 55
+      }
     };
 
-    let score = 0;
-    const totalCountries = 3;
-    let outlinesVisible = false;
-
-    // Initialisation
-    document.addEventListener('DOMContentLoaded', () => {
-      initPieces();
-      initControls();
+    // Drag & Drop
+    document.querySelectorAll('.country-piece').forEach(piece => {
+      piece.addEventListener('mousedown', startDrag);
     });
 
-    function initPieces() {
-      const pieces = document.querySelectorAll('.piece');
-      
-      // Position aléatoire au départ
-      pieces.forEach(piece => {
-        piece.style.left = `${Math.random() * 500 + 50}px`;
-        piece.style.top = `${Math.random() * 300 + 50}px`;
-        piece.addEventListener('mousedown', startDrag);
-      });
-      
-      // Cache les contours par défaut
-      toggleOutlines(false);
-    }
-
-    function initControls() {
-      // Bouton indice
-      document.getElementById('hint').addEventListener('click', () => {
-        outlinesVisible = !outlinesVisible;
-        toggleOutlines(outlinesVisible);
-      });
-      
-      // Bouton reset
-      document.getElementById('reset').addEventListener('click', () => {
-        document.querySelectorAll('.piece').forEach(piece => {
-          piece.style.left = `${Math.random() * 500 + 50}px`;
-          piece.style.top = `${Math.random() * 300 + 50}px`;
-          piece.classList.remove('correct');
-          piece.style.cursor = 'grab';
-        });
-        score = 0;
-        document.getElementById('score').textContent = `Pays corrects : ${score}/${totalCountries}`;
-        document.getElementById('message').textContent = 'Place les drapeaux sur les zones ombrées !';
-        document.getElementById('message').style.color = '#3498db';
-        toggleOutlines(false);
-      });
-    }
-
-    function toggleOutlines(show) {
-      document.querySelectorAll('.outline').forEach(outline => {
-        outline.style.opacity = show ? '0.5' : '0';
-      });
-      document.getElementById('hint').textContent = show ? 'Cacher les zones' : 'Montrer les zones';
-    }
-
     function startDrag(e) {
-      if (e.target.classList.contains('correct')) return;
-      
-      e.preventDefault();
       const piece = e.target;
-      piece.style.cursor = 'grabbing';
-
       const startX = e.clientX;
       const startY = e.clientY;
-      const startLeft = parseInt(piece.style.left) || 0;
-      const startTop = parseInt(piece.style.top) || 0;
+      const startLeft = parseFloat(piece.style.left);
+      const startTop = parseFloat(piece.style.top);
+      const mapRect = document.getElementById('world-map').getBoundingClientRect();
+      const mapWidth = mapRect.width;
+      const mapHeight = mapRect.height;
 
       function move(e) {
-        piece.style.left = `${startLeft + e.clientX - startX}px`;
-        piece.style.top = `${startTop + e.clientY - startY}px`;
+        const newLeft = startLeft + (e.clientX - startX) / mapWidth * 100;
+        const newTop = startTop + (e.clientY - startY) / mapHeight * 100;
+        piece.style.left = `${Math.max(0, Math.min(90, newLeft))}%`;
+        piece.style.top = `${Math.max(0, Math.min(90, newTop))}%`;
       }
 
       function stopDrag() {
         document.removeEventListener('mousemove', move);
         document.removeEventListener('mouseup', stopDrag);
-        piece.style.cursor = 'grab';
-        checkPosition(piece);
       }
 
       document.addEventListener('mousemove', move);
       document.addEventListener('mouseup', stopDrag);
     }
 
-    function checkPosition(piece) {
-      if (piece.classList.contains('correct')) return;
-      
-      const id = piece.id;
-      const currentX = parseInt(piece.style.left);
-      const currentY = parseInt(piece.style.top);
-      const correct = correctPositions[id];
+    // Contrôles
+    document.getElementById('toggle-masks').addEventListener('click', () => {
+      const masks = document.querySelectorAll('.country-mask');
+      masks.forEach(mask => {
+        mask.style.display = mask.style.display === 'none' ? 'block' : 'none';
+      });
+    });
 
-      if (Math.abs(currentX - correct.x) < 30 && Math.abs(currentY - correct.y) < 30) {
-        // Position correcte
-        piece.style.left = `${correct.x}px`;
-        piece.style.top = `${correct.y}px`;
-        piece.classList.add('correct');
-        piece.style.cursor = 'default';
+    document.getElementById('check').addEventListener('click', () => {
+      let correctCount = 0;
+      
+      Object.keys(countryData).forEach(countryId => {
+        const piece = document.getElementById(countryId);
+        const data = countryData[countryId];
+        const pieceLeft = parseFloat(piece.style.left);
+        const pieceTop = parseFloat(piece.style.top);
         
-        score++;
-        document.getElementById('score').textContent = `Pays corrects : ${score}/${totalCountries}`;
-        document.getElementById('message').textContent = `Bravo pour ${id.toUpperCase()} !`;
-        document.getElementById('message').style.color = '#27ae60';
-        setTimeout(() => {
-          if (score < totalCountries) {
-            document.getElementById('message').textContent = 'Continue !';
-          }
-        }, 2000);
-        
-        // Vérifie si tout est complet
-        if (score === totalCountries) {
-          setTimeout(() => {
-            document.getElementById('message').textContent = '🎉 Félicitations ! Vous avez gagné !';
-            document.getElementById('message').style.color = '#e67e22';
-          }, 500);
+        if (Math.abs(pieceLeft - data.correctX) < 3 && 
+            Math.abs(pieceTop - data.correctY) < 3) {
+          piece.style.border = '2px solid #2ecc71';
+          correctCount++;
+        } else {
+          piece.style.border = '2px solid #e74c3c';
         }
-      }
-    }
+      });
+      
+      alert(`${correctCount} pays sur ${Object.keys(countryData).length} bien placés !`);
+    });
   </script>
 </body>
 </html>
