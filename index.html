@@ -1,46 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Géographique</title>
+  <title>Puzzle Géographique - 3 Pays</title>
   <style>
-    body { font-family: Arial; text-align: center; }
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background: #f0f8ff;
+      padding: 20px;
+    }
+    h1 {
+      color: #2c3e50;
+    }
     #map {
       background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Europe_blank_map.png');
       background-size: cover;
-      width: 800px; height: 600px; margin: 20px auto; position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+      position: relative;
+      border: 3px solid #34495e;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    .piece { 
-      width: 100px; position: absolute; cursor: grab;
-      border: 2px dashed transparent;
+    .piece {
+      width: 120px;
+      position: absolute;
+      cursor: grab;
+      border: 3px dashed transparent;
+      transition: transform 0.2s;
+      border-radius: 5px;
+    }
+    .piece:hover {
+      transform: scale(1.05);
     }
     .correct {
-      border: 3px solid #2ecc71 !important;
+      border: 3px solid #27ae60 !important;
+      box-shadow: 0 0 10px #2ecc71;
     }
     #score {
       font-size: 24px;
-      margin-top: 20px;
+      font-weight: bold;
+      color: #e74c3c;
+      margin: 15px;
+    }
+    #message {
+      font-size: 20px;
+      height: 30px;
+      color: #3498db;
     }
   </style>
 </head>
 <body>
   <h1>Puzzle Géographique</h1>
-  <div id="map"></div>
+  <div id="score">Pays corrects : 0/3</div>
+  <div id="message"></div>
+  <div id="map">
+    <!-- Carte vide -->
+  </div>
+  
+  <!-- Pièces à placer -->
   <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
-  <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain" style="top: 100px; left: 100px;">
-  <div id="score">Pays corrects : 0/2</div>
+  <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain">
+  <img src="https://flagcdn.com/w160/it.png" class="piece" id="italy">
 
   <script>
-    // Positions correctes
+    // Positions correctes (x, y)
     const correctPositions = {
-      france: { x: 300, y: 250 },
-      spain:  { x: 250, y: 350 }
+      france: { x: 280, y: 240 },
+      spain:  { x: 220, y: 320 },
+      italy:  { x: 340, y: 300 }
     };
 
     let score = 0;
+    const totalCountries = 3;
 
-    // Rend tous les pays draggables
-    document.querySelectorAll('.piece').forEach(piece => {
-      piece.addEventListener('mousedown', startDrag);
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      const pieces = document.querySelectorAll('.piece');
+      
+      // Position aléatoire au départ
+      pieces.forEach(piece => {
+        piece.style.left = `${Math.random() * 500 + 50}px`;
+        piece.style.top = `${Math.random() * 300 + 50}px`;
+        piece.addEventListener('mousedown', startDrag);
+      });
     });
 
     function startDrag(e) {
@@ -76,11 +120,25 @@
       const correct = correctPositions[id];
 
       if (Math.abs(currentX - correct.x) < 30 && Math.abs(currentY - correct.y) < 30) {
+        // Position correcte
         piece.style.left = `${correct.x}px`;
         piece.style.top = `${correct.y}px`;
         piece.classList.add('correct');
+        piece.style.cursor = 'default';
+        piece.draggable = false;
+        
         score++;
-        document.getElementById('score').textContent = `Pays corrects : ${score}/2`;
+        document.getElementById('score').textContent = `Pays corrects : ${score}/${totalCountries}`;
+        document.getElementById('message').textContent = `Bravo pour ${id.toUpperCase()} !`;
+        setTimeout(() => document.getElementById('message').textContent = '', 2000);
+        
+        // Vérifie si tout est complet
+        if (score === totalCountries) {
+          setTimeout(() => {
+            document.getElementById('message').textContent = '🎉 Félicitations ! Vous avez gagné !';
+            document.getElementById('message').style.color = '#e67e22';
+          }, 500);
+        }
       }
     }
   </script>
