@@ -1,101 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Géographique Sans Images Externes</title>
+  <title>Puzzle Géographique Fiable</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
       background: #f0f8ff;
+      margin: 0;
       padding: 20px;
     }
-    #map-container {
-      position: relative;
-      display: inline-block;
+    #game {
+      width: 800px;
+      height: 500px;
       margin: 20px auto;
+      position: relative;
+      background: url('https://i.imgur.com/4Z3Qq7W.jpg');
+      background-size: cover;
+      border: 3px solid #333;
+      border-radius: 10px;
     }
-    #world-map {
-      width: 100%;
-      max-width: 1000px;
-      border: 2px solid #333;
-      border-radius: 8px;
-    }
-    .country-shape {
+    .piece {
       position: absolute;
-      cursor: grab;
-      opacity: 0.8;
-      transition: transform 0.2s;
+      width: 100px;
+      cursor: move;
+      transition: all 0.3s;
       z-index: 10;
     }
-    .country-target {
-      position: absolute;
-      background-color: rgba(46, 204, 113, 0.3);
-      border: 2px dashed #27ae60;
-      display: none;
-      z-index: 5;
-    }
-    #controls { margin: 20px; }
-    button {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 0 10px;
-    }
-    #feedback {
-      font-size: 20px;
-      height: 30px;
-      color: #e67e22;
-      margin: 10px;
-    }
-    .correct {
-      filter: drop-shadow(0 0 8px #2ecc71);
-      opacity: 1 !important;
+    .piece:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.3));
     }
   </style>
 </head>
 <body>
-  <h1>Puzzle Géographique</h1>
-  <div id="controls">
-    <button id="show-targets">Afficher les cibles</button>
-    <button id="check-answers">Vérifier</button>
-  </div>
-  <div id="feedback"></div>
-
-  <div id="map-container">
-    <!-- Carte du monde -->
-    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDUwMCI+PHBhdGggZmlsbD0iI2VlZSIgZD0iTTAgMGgxMDAwdjUwMEgweiIvPjwvc3ZnPg==" 
-         id="world-map" alt="Carte du monde">
-    
-    <!-- Cibles (contours des pays) -->
-    <div class="country-target" id="france-target" style="width:120px; height:100px; left:42%; top:31%;"></div>
-    <div class="country-target" id="italy-target" style="width:100px; height:80px; left:44%; top:33%;"></div>
-    <div class="country-target" id="brazil-target" style="width:140px; height:120px; left:30%; top:55%;"></div>
-    
+  <h1 style="color: #2c3e50;">Puzzle Géographique</h1>
+  
+  <div id="game">
     <!-- Formes des pays en SVG intégré -->
-    <div class="country-shape" id="france-shape" style="left:10%; top:10%; width:120px; height:100px;">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path fill="#3388FF" d="M10,10 L90,30 L80,80 L20,70 Z"></path>
-      </svg>
-    </div>
-    <div class="country-shape" id="italy-shape" style="left:15%; top:15%; width:100px; height:80px;">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path fill="#33AA55" d="M20,10 L80,20 L70,80 L30,70 Z"></path>
-      </svg>
-    </div>
-    <div class="country-shape" id="brazil-shape" style="left:10%; top:40%; width:140px; height:120px;">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path fill="#FF5555" d="M30,10 L80,30 L70,90 L20,80 Z"></path>
-      </svg>
-    </div>
+    <svg class="piece" id="france" style="left:50px; top:50px; width:120px;" viewBox="0 0 100 100">
+      <path fill="#3388ff" d="M10,10 L40,5 L90,30 L80,80 L30,90 L5,60 Z"></path>
+    </svg>
+    
+    <svg class="piece" id="italy" style="left:200px; top:50px; width:80px;" viewBox="0 0 100 100">
+      <path fill="#33aa55" d="M10,10 L80,20 L70,90 L20,80 Z"></path>
+    </svg>
+    
+    <svg class="piece" id="brazil" style="left:50px; top:200px; width:140px;" viewBox="0 0 100 100">
+      <path fill="#ff5555" d="M30,10 L80,30 L70,90 L20,80 Z"></path>
+    </svg>
   </div>
 
-  <!-- Le même script JavaScript que précédemment -->
   <script>
-    // [Votre script JavaScript ici - identique à l'exemple précédent]
+    // Drag-and-drop simplifié
+    document.querySelectorAll('.piece').forEach(piece => {
+      piece.addEventListener('mousedown', startDrag);
+    });
+
+    function startDrag(e) {
+      e.preventDefault();
+      const piece = e.target;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startLeft = parseInt(piece.style.left) || 0;
+      const startTop = parseInt(piece.style.top) || 0;
+
+      function move(e) {
+        piece.style.left = `${startLeft + e.clientX - startX}px`;
+        piece.style.top = `${startTop + e.clientY - startY}px`;
+      }
+
+      function stopDrag() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', stopDrag);
+      }
+
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', stopDrag);
+    }
   </script>
 </body>
 </html>
