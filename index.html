@@ -6,35 +6,83 @@
     body { font-family: Arial; text-align: center; }
     #map {
       background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Europe_blank_map.png');
+      background-size: cover;
       width: 800px; height: 600px; margin: 20px auto; position: relative;
     }
-    .piece { width: 100px; position: absolute; cursor: grab; }
+    .piece { 
+      width: 100px; position: absolute; cursor: grab;
+      border: 2px dashed transparent;
+    }
+    .correct {
+      border: 3px solid #2ecc71 !important;
+    }
+    #score {
+      font-size: 24px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
+  <h1>Puzzle Géographique</h1>
   <div id="map"></div>
   <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
-  
+  <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain" style="top: 100px; left: 100px;">
+  <div id="score">Pays corrects : 0/2</div>
+
   <script>
-    document.getElementById('france').addEventListener('mousedown', function(e) {
-      e.preventDefault();
-      const france = this;
-      let offsetX = e.clientX - france.getBoundingClientRect().left;
-      let offsetY = e.clientY - france.getBoundingClientRect().top;
-      
-      function move(e) {
-        france.style.left = (e.clientX - offsetX) + 'px';
-        france.style.top = (e.clientY - offsetY) + 'px';
-      }
-      
-      document.addEventListener('mousemove', move);
-      document.addEventListener('mouseup', function() {
-        document.removeEventListener('mousemove', move);
-        if (parseInt(france.style.left) > 250 && parseInt(france.style.left) < 350) {
-          alert('Bravo !');
-        }
-      });
+    // Positions correctes
+    const correctPositions = {
+      france: { x: 300, y: 250 },
+      spain:  { x: 250, y: 350 }
+    };
+
+    let score = 0;
+
+    // Rend tous les pays draggables
+    document.querySelectorAll('.piece').forEach(piece => {
+      piece.addEventListener('mousedown', startDrag);
     });
+
+    function startDrag(e) {
+      e.preventDefault();
+      const piece = e.target;
+      piece.style.cursor = 'grabbing';
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startLeft = parseInt(piece.style.left) || 0;
+      const startTop = parseInt(piece.style.top) || 0;
+
+      function move(e) {
+        piece.style.left = `${startLeft + e.clientX - startX}px`;
+        piece.style.top = `${startTop + e.clientY - startY}px`;
+      }
+
+      function stopDrag() {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', stopDrag);
+        piece.style.cursor = 'grab';
+        checkPosition(piece);
+      }
+
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', stopDrag);
+    }
+
+    function checkPosition(piece) {
+      const id = piece.id;
+      const currentX = parseInt(piece.style.left);
+      const currentY = parseInt(piece.style.top);
+      const correct = correctPositions[id];
+
+      if (Math.abs(currentX - correct.x) < 30 && Math.abs(currentY - correct.y) < 30) {
+        piece.style.left = `${correct.x}px`;
+        piece.style.top = `${correct.y}px`;
+        piece.classList.add('correct');
+        score++;
+        document.getElementById('score').textContent = `Pays corrects : ${score}/2`;
+      }
+    }
   </script>
 </body>
 </html>
