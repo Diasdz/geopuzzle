@@ -1,7 +1,40 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Puzzle Géographique</title>
+  <style>
+    body { font-family: Arial; text-align: center; }
+    #map {
+      background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Europe_blank_map.png');
+      width: 800px; height: 600px; margin: 20px auto; position: relative;
+    }
+    .piece { width: 100px; position: absolute; cursor: grab; }
+  </style>
+</head>
 <body>
-  <h1>Puzzle Géographique</h1>
-  <p>Fonctionnalité drag & drop à venir</p>
+  <div id="map"></div>
+  <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
+  
+  <script>
+    document.getElementById('france').addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      const france = this;
+      let offsetX = e.clientX - france.getBoundingClientRect().left;
+      let offsetY = e.clientY - france.getBoundingClientRect().top;
+      
+      function move(e) {
+        france.style.left = (e.clientX - offsetX) + 'px';
+        france.style.top = (e.clientY - offsetY) + 'px';
+      }
+      
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', function() {
+        document.removeEventListener('mousemove', move);
+        if (parseInt(france.style.left) > 250 && parseInt(france.style.left) < 350) {
+          alert('Bravo !');
+        }
+      });
+    });
+  </script>
 </body>
 </html>
