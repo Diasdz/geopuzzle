@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Géographique - 3 Pays</title>
+  <title>Puzzle Géographique avec Guides</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -11,14 +11,17 @@
     }
     h1 {
       color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    #map-container {
+      position: relative;
+      display: inline-block;
     }
     #map {
       background: url('https://upload.wikimedia.org/wikipedia/commons/7/73/Europe_blank_map.png');
       background-size: cover;
       width: 800px;
       height: 600px;
-      margin: 20px auto;
-      position: relative;
       border: 3px solid #34495e;
       border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -30,6 +33,7 @@
       border: 3px dashed transparent;
       transition: transform 0.2s;
       border-radius: 5px;
+      z-index: 10;
     }
     .piece:hover {
       transform: scale(1.05);
@@ -37,6 +41,15 @@
     .correct {
       border: 3px solid #27ae60 !important;
       box-shadow: 0 0 10px #2ecc71;
+      cursor: default !important;
+    }
+    .outline {
+      position: absolute;
+      width: 120px;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 5;
+      border-radius: 5px;
     }
     #score {
       font-size: 24px;
@@ -48,21 +61,50 @@
       font-size: 20px;
       height: 30px;
       color: #3498db;
+      margin-bottom: 10px;
+    }
+    #controls {
+      margin: 20px;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 0 10px;
+    }
+    button:hover {
+      background: #2980b9;
     }
   </style>
 </head>
 <body>
   <h1>Puzzle Géographique</h1>
+  <div id="message">Place les drapeaux sur les zones ombrées !</div>
   <div id="score">Pays corrects : 0/3</div>
-  <div id="message"></div>
-  <div id="map">
-    <!-- Carte vide -->
-  </div>
   
-  <!-- Pièces à placer -->
-  <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
-  <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain">
-  <img src="https://flagcdn.com/w160/it.png" class="piece" id="italy">
+  <div id="controls">
+    <button id="hint">Montrer les zones</button>
+    <button id="reset">Réinitialiser</button>
+  </div>
+
+  <div id="map-container">
+    <!-- Carte de base -->
+    <div id="map"></div>
+    
+    <!-- Contours des pays (guides) -->
+    <img src="https://i.imgur.com/JQK6hXz.png" class="outline" id="france-outline" style="left: 280px; top: 240px;">
+    <img src="https://i.imgur.com/VW7lQ9E.png" class="outline" id="spain-outline" style="left: 220px; top: 320px;">
+    <img src="https://i.imgur.com/9Rk4T2w.png" class="outline" id="italy-outline" style="left: 340px; top: 300px;">
+    
+    <!-- Drapeaux à placer -->
+    <img src="https://flagcdn.com/w160/fr.png" class="piece" id="france">
+    <img src="https://flagcdn.com/w160/es.png" class="piece" id="spain">
+    <img src="https://flagcdn.com/w160/it.png" class="piece" id="italy">
+  </div>
 
   <script>
     // Positions correctes (x, y)
@@ -74,9 +116,15 @@
 
     let score = 0;
     const totalCountries = 3;
+    let outlinesVisible = false;
 
     // Initialisation
     document.addEventListener('DOMContentLoaded', () => {
+      initPieces();
+      initControls();
+    });
+
+    function initPieces() {
       const pieces = document.querySelectorAll('.piece');
       
       // Position aléatoire au départ
@@ -85,9 +133,44 @@
         piece.style.top = `${Math.random() * 300 + 50}px`;
         piece.addEventListener('mousedown', startDrag);
       });
-    });
+      
+      // Cache les contours par défaut
+      toggleOutlines(false);
+    }
+
+    function initControls() {
+      // Bouton indice
+      document.getElementById('hint').addEventListener('click', () => {
+        outlinesVisible = !outlinesVisible;
+        toggleOutlines(outlinesVisible);
+      });
+      
+      // Bouton reset
+      document.getElementById('reset').addEventListener('click', () => {
+        document.querySelectorAll('.piece').forEach(piece => {
+          piece.style.left = `${Math.random() * 500 + 50}px`;
+          piece.style.top = `${Math.random() * 300 + 50}px`;
+          piece.classList.remove('correct');
+          piece.style.cursor = 'grab';
+        });
+        score = 0;
+        document.getElementById('score').textContent = `Pays corrects : ${score}/${totalCountries}`;
+        document.getElementById('message').textContent = 'Place les drapeaux sur les zones ombrées !';
+        document.getElementById('message').style.color = '#3498db';
+        toggleOutlines(false);
+      });
+    }
+
+    function toggleOutlines(show) {
+      document.querySelectorAll('.outline').forEach(outline => {
+        outline.style.opacity = show ? '0.5' : '0';
+      });
+      document.getElementById('hint').textContent = show ? 'Cacher les zones' : 'Montrer les zones';
+    }
 
     function startDrag(e) {
+      if (e.target.classList.contains('correct')) return;
+      
       e.preventDefault();
       const piece = e.target;
       piece.style.cursor = 'grabbing';
@@ -114,6 +197,8 @@
     }
 
     function checkPosition(piece) {
+      if (piece.classList.contains('correct')) return;
+      
       const id = piece.id;
       const currentX = parseInt(piece.style.left);
       const currentY = parseInt(piece.style.top);
@@ -125,12 +210,16 @@
         piece.style.top = `${correct.y}px`;
         piece.classList.add('correct');
         piece.style.cursor = 'default';
-        piece.draggable = false;
         
         score++;
         document.getElementById('score').textContent = `Pays corrects : ${score}/${totalCountries}`;
         document.getElementById('message').textContent = `Bravo pour ${id.toUpperCase()} !`;
-        setTimeout(() => document.getElementById('message').textContent = '', 2000);
+        document.getElementById('message').style.color = '#27ae60';
+        setTimeout(() => {
+          if (score < totalCountries) {
+            document.getElementById('message').textContent = 'Continue !';
+          }
+        }, 2000);
         
         // Vérifie si tout est complet
         if (score === totalCountries) {
