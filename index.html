@@ -21,6 +21,10 @@
             background-color: var(--bg-light);
             color: var(--text-light);
             transition: all 0.3s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         body.dark-mode {
@@ -30,8 +34,11 @@
 
         .game-container {
             max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         h1 {
@@ -43,18 +50,31 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
             align-items: center;
         }
 
         #puzzle-container {
-            width: 500px;
+            width: 100%;
+            max-width: 500px;
             height: 500px;
-            margin: 0 auto;
+            margin: 0 auto 20px;
             border: 2px solid #3b82f6;
             border-radius: 8px;
             position: relative;
             overflow: hidden;
             background-color: #f0f4f8;
+            background-image: url('https://source.unsplash.com/random/600x600/?nature');
+            background-size: cover;
+            background-position: center;
         }
 
         .puzzle-piece {
@@ -65,6 +85,7 @@
             transition: transform 0.2s;
             z-index: 10;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            background-size: 500px 500px;
         }
 
         .puzzle-piece:hover {
@@ -82,11 +103,18 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 10px;
+            gap: 15px;
             margin-top: 20px;
             padding: 15px;
             background-color: #e2e8f0;
             border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+            min-height: 150px;
+        }
+
+        .dark-mode #pieces-container {
+            background-color: #2d3748;
         }
 
         .stats {
@@ -96,6 +124,12 @@
             padding: 15px;
             background-color: #e2e8f0;
             border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .dark-mode .stats {
+            background-color: #2d3748;
         }
 
         .stat-box {
@@ -112,11 +146,12 @@
             background-color: #3b82f6;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 1em;
             transition: background 0.3s;
+            white-space: nowrap;
         }
 
         button:hover {
@@ -124,10 +159,11 @@
         }
 
         select {
-            padding: 8px 15px;
+            padding: 8px 12px;
             border-radius: 5px;
             border: 1px solid #ccc;
             font-size: 1em;
+            min-width: 120px;
         }
 
         .theme-toggle {
@@ -145,12 +181,22 @@
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
         }
 
         @media (max-width: 600px) {
             #puzzle-container {
-                width: 300px;
                 height: 300px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-group {
+                width: 100%;
+                justify-content: space-between;
             }
         }
     </style>
@@ -162,7 +208,7 @@
         <h1>Puzzle en Ligne</h1>
         
         <div class="controls">
-            <div>
+            <div class="control-group">
                 <label for="difficulty">Difficulté :</label>
                 <select id="difficulty">
                     <option value="9">Facile (3x3)</option>
@@ -171,8 +217,10 @@
                     <option value="36">Expert (6x6)</option>
                 </select>
             </div>
-            <button id="new-game-btn">Nouveau Jeu</button>
-            <button id="hint-btn">Indice</button>
+            <div class="control-group">
+                <button id="new-game-btn">Nouveau Jeu</button>
+                <button id="hint-btn">Indice</button>
+            </div>
         </div>
         
         <div id="puzzle-container"></div>
@@ -198,13 +246,14 @@
     <script>
         // Configuration du jeu
         const config = {
-            imageUrl: 'https://source.unsplash.com/random/600x600/?landscape', // Image aléatoire
+            imageUrl: 'https://source.unsplash.com/random/600x600/?nature', // Image aléatoire nature
             pieces: 16, // 4x4 par défaut
             placedPieces: 0,
             time: 0,
             score: 0,
             timerInterval: null,
-            hintUsed: false
+            hintUsed: false,
+            pieceSize: 0
         };
 
         // Éléments DOM
@@ -246,19 +295,19 @@
         function createPuzzle() {
             const size = Math.sqrt(config.pieces);
             const containerWidth = puzzleContainer.offsetWidth;
-            const pieceSize = containerWidth / size;
+            config.pieceSize = containerWidth / size;
             
             // Créer les pièces découpées
             for (let i = 0; i < config.pieces; i++) {
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
                 piece.dataset.index = i;
-                piece.style.width = `${pieceSize}px`;
-                piece.style.height = `${pieceSize}px`;
+                piece.style.width = `${config.pieceSize}px`;
+                piece.style.height = `${config.pieceSize}px`;
                 
                 // Position aléatoire pour les pièces non placées
-                const randomX = Math.random() * (piecesContainer.offsetWidth - pieceSize);
-                const randomY = Math.random() * (piecesContainer.offsetHeight - pieceSize);
+                const randomX = Math.random() * (piecesContainer.offsetWidth - config.pieceSize);
+                const randomY = 50 + Math.random() * (piecesContainer.offsetHeight - config.pieceSize - 50);
                 
                 piece.style.left = `${randomX}px`;
                 piece.style.top = `${randomY}px`;
@@ -268,11 +317,12 @@
                 // Calculer la position du background
                 const col = i % size;
                 const row = Math.floor(i / size);
-                piece.style.backgroundPosition = `-${col * pieceSize}px -${row * pieceSize}px`;
+                piece.style.backgroundPosition = `-${col * config.pieceSize}px -${row * config.pieceSize}px`;
                 
                 // Drag and drop
                 piece.draggable = true;
                 piece.addEventListener('dragstart', dragStart);
+                piece.addEventListener('dragend', dragEnd);
                 
                 piecesContainer.appendChild(piece);
             }
@@ -288,9 +338,11 @@
         function dragStart(e) {
             draggedPiece = e.target;
             e.dataTransfer.setData('text/plain', e.target.dataset.index);
-            setTimeout(() => {
-                e.target.style.opacity = '0.4';
-            }, 0);
+            e.target.style.opacity = '0.7';
+        }
+
+        function dragEnd(e) {
+            e.target.style.opacity = '1';
         }
 
         function dragOver(e) {
@@ -301,9 +353,8 @@
             e.preventDefault();
             if (!draggedPiece) return;
             
-            const index = e.dataTransfer.getData('text/plain');
+            const index = parseInt(e.dataTransfer.getData('text/plain'));
             const size = Math.sqrt(config.pieces);
-            const pieceSize = puzzleContainer.offsetWidth / size;
             
             // Position dans le conteneur
             const rect = puzzleContainer.getBoundingClientRect();
@@ -313,14 +364,14 @@
             // Position attendue
             const col = index % size;
             const row = Math.floor(index / size);
-            const expectedX = col * pieceSize;
-            const expectedY = row * pieceSize;
+            const expectedX = col * config.pieceSize;
+            const expectedY = row * config.pieceSize;
             
             // Vérifier si la pièce est à la bonne position
-            const tolerance = pieceSize * 0.2; // 20% de tolérance
+            const tolerance = config.pieceSize * 0.3; // 30% de tolérance
             const isCorrect = (
-                Math.abs(x - expectedX - pieceSize/2) < tolerance && 
-                Math.abs(y - expectedY - pieceSize/2) < tolerance
+                Math.abs(x - expectedX - config.pieceSize/2) < tolerance && 
+                Math.abs(y - expectedY - config.pieceSize/2) < tolerance
             );
             
             if (isCorrect) {
@@ -347,6 +398,13 @@
                         alert(`Félicitations !\nScore final: ${config.score}\nTemps: ${formatTime(config.time)}`);
                     }, 500);
                 }
+            } else {
+                // Retour à la zone de pièces
+                const randomX = Math.random() * (piecesContainer.offsetWidth - config.pieceSize);
+                const randomY = 50 + Math.random() * (piecesContainer.offsetHeight - config.pieceSize - 50);
+                draggedPiece.style.left = `${randomX}px`;
+                draggedPiece.style.top = `${randomY}px`;
+                piecesContainer.appendChild(draggedPiece);
             }
             
             draggedPiece.style.opacity = '1';
