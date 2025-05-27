@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jeu de Géographie - Europe</title>
+    <title>Puzzle en Ligne</title>
     <style>
         :root {
-            --bg-light: #f0f8ff;
+            --bg-light: #f5f7fa;
             --bg-dark: #1a1a2e;
             --card-light: #ffffff;
             --card-dark: #16213e;
             --text-light: #333;
             --text-dark: #f5f5f5;
         }
-        
+
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -22,316 +22,395 @@
             color: var(--text-light);
             transition: all 0.3s;
         }
-        
+
         body.dark-mode {
             background-color: var(--bg-dark);
             color: var(--text-dark);
         }
-        
+
         .game-container {
-            display: flex;
-            flex-direction: column;
-            max-width: 1000px;
+            max-width: 800px;
             margin: 0 auto;
+            text-align: center;
         }
-        
-        #map-container {
-            position: relative;
-            width: 100%;
-            height: 500px;
-            margin-bottom: 20px;
-            border: 2px solid #333;
-            border-radius: 8px;
-            overflow: hidden;
+
+        h1 {
+            color: #3b82f6;
+            margin-bottom: 10px;
         }
-        
-        #europe-map {
-            width: 100%;
-            height: 100%;
-            background-color: #e8f4f8;
-        }
-        
-        .country-slot {
-            position: absolute;
-            padding: 8px 12px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 4px;
-            cursor: grab;
-            z-index: 10;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        .country-slot.placed {
-            background: #2ecc71;
-            cursor: default;
-        }
-        
-        #controls {
+
+        .controls {
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
+            align-items: center;
         }
-        
-        #country-pool {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
+
+        #puzzle-container {
+            width: 500px;
+            height: 500px;
+            margin: 0 auto;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            background-color: #f0f4f8;
         }
-        
-        .country-item {
-            padding: 8px 12px;
-            background: #3498db;
-            color: white;
-            border-radius: 4px;
+
+        .puzzle-piece {
+            position: absolute;
+            border: 1px solid #fff;
+            box-sizing: border-box;
             cursor: grab;
-            user-select: none;
+            transition: transform 0.2s;
+            z-index: 10;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
-        
-        .country-item.used {
-            opacity: 0.3;
+
+        .puzzle-piece:hover {
+            transform: scale(1.03);
+            z-index: 20;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .puzzle-piece.correct {
+            border: 2px solid #10b981;
             cursor: default;
         }
-        
-        #score-display {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 20px;
+
+        #pieces-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
         }
-        
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+
+        select {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+
         .theme-toggle {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 8px;
             background: #333;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        
-        .country-highlight {
-            fill: #f1c40f;
-            opacity: 0.7;
-            transition: all 0.3s;
-        }
-        
-        .country-correct {
-            fill: #2ecc71;
-            opacity: 0.7;
+
+        @media (max-width: 600px) {
+            #puzzle-container {
+                width: 300px;
+                height: 300px;
+            }
         }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle">🌙 Mode Sombre</button>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
     
     <div class="game-container">
-        <h1>Jeu de Géographie - Europe</h1>
-        <p>Placez les pays sur leur emplacement correct</p>
+        <h1>Puzzle en Ligne</h1>
         
-        <div id="controls">
-            <div id="score-display">Score: <span id="score">0</span></div>
-            <button id="reset-btn">Réinitialiser</button>
+        <div class="controls">
+            <div>
+                <label for="difficulty">Difficulté :</label>
+                <select id="difficulty">
+                    <option value="9">Facile (3x3)</option>
+                    <option value="16" selected>Moyen (4x4)</option>
+                    <option value="25">Difficile (5x5)</option>
+                    <option value="36">Expert (6x6)</option>
+                </select>
+            </div>
+            <button id="new-game-btn">Nouveau Jeu</button>
+            <button id="hint-btn">Indice</button>
         </div>
         
-        <div id="country-pool">
-            <!-- Les pays seront ajoutés ici par JavaScript -->
-        </div>
+        <div id="puzzle-container"></div>
         
-        <div id="map-container">
-            <!-- Carte SVG de l'Europe -->
-            <svg id="europe-map" viewBox="0 0 1000 850" xmlns="http://www.w3.org/2000/svg">
-                <!-- France -->
-                <path id="france" d="M200,350 L210,360 L220,350 L230,340 L240,330 L250,320 L260,310 L270,300 L280,290 L290,280 L300,270 L310,260 L320,250 L330,240 L340,230 L350,220 L360,210 L370,200 L380,190 L390,180 L400,170 L410,160 L420,150 L430,140 L440,130 L450,120 L460,110 L470,100 L480,90 L490,80 L500,70" fill="#ecf0f1" stroke="#7f8c8d"/>
-                <!-- Allemagne -->
-                <path id="germany" d="M300,300 L310,310 L320,320 L330,330 L340,340 L350,350 L360,360 L370,370 L380,380 L390,390 L400,400 L410,410 L420,420 L430,430 L440,440 L450,450 L460,460 L470,470 L480,480 L490,490 L500,500" fill="#ecf0f1" stroke="#7f8c8d"/>
-                <!-- Espagne -->
-                <path id="spain" d="M150,400 L160,410 L170,420 L180,430 L190,440 L200,450 L210,460 L220,470 L230,480 L240,490 L250,500 L260,510 L270,520 L280,530 L290,540 L300,550" fill="#ecf0f1" stroke="#7f8c8d"/>
-                <!-- Italie -->
-                <path id="italy" d="M280,450 L290,460 L300,470 L310,480 L320,490 L330,500 L340,510 L350,520 L360,530 L370,540 L380,550 L390,560 L400,570" fill="#ecf0f1" stroke="#7f8c8d"/>
-                <!-- Plus de pays... -->
-            </svg>
+        <div id="pieces-container"></div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Pièces placées</div>
+                <div class="stat-value" id="placed-count">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Temps</div>
+                <div class="stat-value" id="time">0:00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Données des pays
-        const countries = [
-            { id: "france", name: "France", x: 200, y: 350 },
-            { id: "germany", name: "Allemagne", x: 300, y: 300 },
-            { id: "spain", name: "Espagne", x: 150, y: 400 },
-            { id: "italy", name: "Italie", x: 280, y: 450 },
-            { id: "uk", name: "Royaume-Uni", x: 180, y: 250 },
-            { id: "portugal", name: "Portugal", x: 100, y: 380 }
-        ];
+        // Configuration du jeu
+        const config = {
+            imageUrl: 'https://source.unsplash.com/random/600x600/?landscape', // Image aléatoire
+            pieces: 16, // 4x4 par défaut
+            placedPieces: 0,
+            time: 0,
+            score: 0,
+            timerInterval: null,
+            hintUsed: false
+        };
 
-        let score = 0;
-        let draggedCountry = null;
-        let offsetX, offsetY;
+        // Éléments DOM
+        const puzzleContainer = document.getElementById('puzzle-container');
+        const piecesContainer = document.getElementById('pieces-container');
+        const placedCountEl = document.getElementById('placed-count');
+        const timeEl = document.getElementById('time');
+        const scoreEl = document.getElementById('score');
+        const difficultySelect = document.getElementById('difficulty');
+        const newGameBtn = document.getElementById('new-game-btn');
+        const hintBtn = document.getElementById('hint-btn');
+        const themeToggle = document.getElementById('themeToggle');
 
-        // Initialisation du jeu
-        function initGame() {
-            const countryPool = document.getElementById('country-pool');
+        // Démarrer un nouveau jeu
+        function startNewGame() {
+            // Réinitialiser les valeurs
+            clearInterval(config.timerInterval);
+            config.pieces = parseInt(difficultySelect.value);
+            config.placedPieces = 0;
+            config.time = 0;
+            config.score = 0;
+            config.hintUsed = false;
             
-            // Mélanger les pays
-            const shuffledCountries = [...countries].sort(() => Math.random() - 0.5);
+            // Mettre à jour l'UI
+            puzzleContainer.innerHTML = '';
+            piecesContainer.innerHTML = '';
+            placedCountEl.textContent = '0';
+            scoreEl.textContent = '0';
+            timeEl.textContent = '0:00';
             
-            // Créer les éléments de pays
-            shuffledCountries.forEach(country => {
-                const div = document.createElement('div');
-                div.className = 'country-item';
-                div.textContent = country.name;
-                div.dataset.id = country.id;
-                div.draggable = true;
+            // Créer le puzzle
+            createPuzzle();
+            
+            // Démarrer le timer
+            config.timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Créer le puzzle
+        function createPuzzle() {
+            const size = Math.sqrt(config.pieces);
+            const containerWidth = puzzleContainer.offsetWidth;
+            const pieceSize = containerWidth / size;
+            
+            // Créer les pièces découpées
+            for (let i = 0; i < config.pieces; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece';
+                piece.dataset.index = i;
+                piece.style.width = `${pieceSize}px`;
+                piece.style.height = `${pieceSize}px`;
                 
-                div.addEventListener('dragstart', (e) => {
-                    draggedCountry = div;
-                    offsetX = e.offsetX;
-                    offsetY = e.offsetY;
-                    highlightCountry(country.id);
-                    e.dataTransfer.setData('text/plain', country.id);
-                });
+                // Position aléatoire pour les pièces non placées
+                const randomX = Math.random() * (piecesContainer.offsetWidth - pieceSize);
+                const randomY = Math.random() * (piecesContainer.offsetHeight - pieceSize);
                 
-                div.addEventListener('dragend', () => {
-                    unhighlightCountry(country.id);
-                });
+                piece.style.left = `${randomX}px`;
+                piece.style.top = `${randomY}px`;
+                piece.style.backgroundImage = `url(${config.imageUrl})`;
+                piece.style.backgroundSize = `${containerWidth}px ${containerWidth}px`;
                 
-                countryPool.appendChild(div);
-            });
-            
-            // Gestion du drop sur la carte
-            document.getElementById('europe-map').addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
-            
-            document.getElementById('europe-map').addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (!draggedCountry) return;
+                // Calculer la position du background
+                const col = i % size;
+                const row = Math.floor(i / size);
+                piece.style.backgroundPosition = `-${col * pieceSize}px -${row * pieceSize}px`;
                 
-                const countryId = e.dataTransfer.getData('text/plain');
-                const country = countries.find(c => c.id === countryId);
+                // Drag and drop
+                piece.draggable = true;
+                piece.addEventListener('dragstart', dragStart);
                 
-                if (country) {
-                    const svgRect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - svgRect.left;
-                    const y = e.clientY - svgRect.top;
-                    
-                    // Vérifier si le pays est placé au bon endroit
-                    const targetPath = document.getElementById(country.id);
-                    if (targetPath && isPointInPath(targetPath, x, y)) {
-                        placeCountry(country, x, y);
-                        updateScore(10);
-                        markCountryCorrect(country.id);
-                    } else {
-                        updateScore(-5);
-                    }
-                }
-            });
-            
-            // Bouton de réinitialisation
-            document.getElementById('reset-btn').addEventListener('click', resetGame);
-            
-            // Bouton de thème
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-        }
-        
-        // Placer un pays sur la carte
-        function placeCountry(country, x, y) {
-            const countryElement = document.createElement('div');
-            countryElement.className = 'country-slot placed';
-            countryElement.textContent = country.name;
-            countryElement.style.left = `${x - offsetX}px`;
-            countryElement.style.top = `${y - offsetY}px`;
-            
-            document.getElementById('map-container').appendChild(countryElement);
-            
-            // Marquer le pays comme utilisé
-            draggedCountry.classList.add('used');
-            draggedCountry.draggable = false;
-            draggedCountry = null;
-        }
-        
-        // Mettre à jour le score
-        function updateScore(points) {
-            score += points;
-            document.getElementById('score').textContent = score;
-        }
-        
-        // Vérifier si un point est dans un chemin SVG
-        function isPointInPath(path, x, y) {
-            const point = document.getElementById('europe-map').createSVGPoint();
-            point.x = x;
-            point.y = y;
-            return path.isPointInFill(point);
-        }
-        
-        // Mettre en évidence un pays
-        function highlightCountry(countryId) {
-            const path = document.getElementById(countryId);
-            if (path) path.classList.add('country-highlight');
-        }
-        
-        // Retirer la mise en évidence
-        function unhighlightCountry(countryId) {
-            const path = document.getElementById(countryId);
-            if (path) path.classList.remove('country-highlight');
-        }
-        
-        // Marquer un pays comme correct
-        function markCountryCorrect(countryId) {
-            const path = document.getElementById(countryId);
-            if (path) {
-                path.classList.add('country-correct');
-                path.classList.remove('country-highlight');
+                piecesContainer.appendChild(piece);
             }
+            
+            // Zone de dépôt
+            puzzleContainer.addEventListener('dragover', dragOver);
+            puzzleContainer.addEventListener('drop', drop);
         }
-        
-        // Réinitialiser le jeu
-        function resetGame() {
-            score = 0;
-            document.getElementById('score').textContent = score;
+
+        // Gestion du drag and drop
+        let draggedPiece = null;
+
+        function dragStart(e) {
+            draggedPiece = e.target;
+            e.dataTransfer.setData('text/plain', e.target.dataset.index);
+            setTimeout(() => {
+                e.target.style.opacity = '0.4';
+            }, 0);
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            if (!draggedPiece) return;
             
-            // Supprimer tous les pays placés
-            document.querySelectorAll('.country-slot').forEach(el => el.remove());
+            const index = e.dataTransfer.getData('text/plain');
+            const size = Math.sqrt(config.pieces);
+            const pieceSize = puzzleContainer.offsetWidth / size;
             
-            // Réactiver tous les pays
-            document.querySelectorAll('.country-item').forEach(el => {
-                el.classList.remove('used');
-                el.draggable = true;
-            });
+            // Position dans le conteneur
+            const rect = puzzleContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
             
-            // Réinitialiser les couleurs des pays
-            countries.forEach(country => {
-                const path = document.getElementById(country.id);
-                if (path) {
-                    path.classList.remove('country-correct');
-                    path.classList.remove('country-highlight');
+            // Position attendue
+            const col = index % size;
+            const row = Math.floor(index / size);
+            const expectedX = col * pieceSize;
+            const expectedY = row * pieceSize;
+            
+            // Vérifier si la pièce est à la bonne position
+            const tolerance = pieceSize * 0.2; // 20% de tolérance
+            const isCorrect = (
+                Math.abs(x - expectedX - pieceSize/2) < tolerance && 
+                Math.abs(y - expectedY - pieceSize/2) < tolerance
+            );
+            
+            if (isCorrect) {
+                // Placer la pièce au bon endroit
+                draggedPiece.style.left = `${expectedX}px`;
+                draggedPiece.style.top = `${expectedY}px`;
+                draggedPiece.classList.add('correct');
+                draggedPiece.draggable = false;
+                puzzleContainer.appendChild(draggedPiece);
+                
+                // Mettre à jour le score
+                config.placedPieces++;
+                placedCountEl.textContent = config.placedPieces;
+                
+                const timeBonus = Math.max(300 - config.time, 0);
+                const hintPenalty = config.hintUsed ? 0.5 : 1;
+                config.score += Math.floor(100 * hintPenalty + timeBonus / 10);
+                scoreEl.textContent = config.score;
+                
+                // Vérifier si le puzzle est complet
+                if (config.placedPieces === config.pieces) {
+                    clearInterval(config.timerInterval);
+                    setTimeout(() => {
+                        alert(`Félicitations !\nScore final: ${config.score}\nTemps: ${formatTime(config.time)}`);
+                    }, 500);
                 }
-            });
+            }
+            
+            draggedPiece.style.opacity = '1';
+            draggedPiece = null;
         }
-        
-        // Basculer entre les thèmes clair/sombre
+
+        // Mettre à jour le timer
+        function updateTimer() {
+            config.time++;
+            timeEl.textContent = formatTime(config.time);
+        }
+
+        // Formater le temps (MM:SS)
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Donner un indice
+        function giveHint() {
+            if (config.hintUsed) return;
+            
+            const pieces = document.querySelectorAll('.puzzle-piece:not(.correct)');
+            if (pieces.length === 0) return;
+            
+            const randomPiece = pieces[Math.floor(Math.random() * pieces.length)];
+            
+            // Flash la pièce et sa position
+            randomPiece.style.boxShadow = '0 0 15px gold';
+            setTimeout(() => {
+                randomPiece.style.boxShadow = '';
+            }, 1000);
+            
+            config.hintUsed = true;
+            config.score = Math.floor(config.score * 0.8); // Pénalité de 20%
+            scoreEl.textContent = config.score;
+        }
+
+        // Basculer entre les thèmes
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            document.getElementById('themeToggle').textContent = isDark ? '☀️ Mode Clair' : '🌙 Mode Sombre';
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
             localStorage.setItem('darkMode', isDark);
         }
-        
+
         // Charger le thème sauvegardé
         function loadTheme() {
             const darkMode = localStorage.getItem('darkMode') === 'true';
             if (darkMode) {
                 document.body.classList.add('dark-mode');
-                document.getElementById('themeToggle').textContent = '☀️ Mode Clair';
+                themeToggle.textContent = '☀️';
             }
         }
-        
-        // Démarrer le jeu
+
+        // Événements
+        newGameBtn.addEventListener('click', startNewGame);
+        hintBtn.addEventListener('click', giveHint);
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Initialisation
         loadTheme();
-        initGame();
+        startNewGame();
     </script>
 </body>
 </html>
