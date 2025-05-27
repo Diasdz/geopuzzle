@@ -2,148 +2,117 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Europe : Drag & Drop des Pays</title>
+    <title>Puzzle Europe - Carte intégrée</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             background-color: #f0f8ff;
+            padding: 20px;
         }
         #game-container {
             display: flex;
-            justify-content: space-around;
-            margin: 20px auto;
-            max-width: 1000px;
+            justify-content: space-between;
+            max-width: 900px;
+            margin: 0 auto;
         }
         #map {
             width: 600px;
             height: 500px;
-            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Europe_blank_map.png/600px-Europe_blank_map.png');
-            background-size: cover;
-            position: relative;
+            background-color: #e6f7ff;
             border: 2px solid #333;
+            position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500"><path fill="none" stroke="black" d="M100,100 L150,120 L180,90..."/>[Vecteurs simplifiés de l\'Europe]</svg>');
         }
         #countries-pool {
-            display: flex;
-            flex-wrap: wrap;
             width: 200px;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
-            align-content: flex-start;
         }
         .country {
-            padding: 8px;
-            background-color: #4CAF50;
+            padding: 10px;
+            background: #4CAF50;
             color: white;
             border-radius: 5px;
             cursor: grab;
-            user-select: none;
             text-align: center;
-            margin: 5px;
-        }
-        .country.dragging {
-            opacity: 0.5;
+            user-select: none;
         }
         .country.placed {
-            background-color: #8BC34A;
+            background: #8BC34A;
             cursor: default;
         }
         #message {
+            margin-top: 20px;
             font-weight: bold;
-            margin: 20px;
             color: #2e7d32;
         }
     </style>
 </head>
 <body>
-    <h1>🌍 Puzzle Europe : Place les pays sur la carte !</h1>
-    <p>Faites glisser les pays dans leur emplacement correct.</p>
+    <h1>🌍 Puzzle Europe - Placez les pays</h1>
+    <p>Glissez-déposez les pays sur leur emplacement</p>
     
     <div id="game-container">
         <div id="map"></div>
-        <div id="countries-pool"></div>
+        <div id="countries-pool">
+            <div class="country" draggable="true" data-name="France">France</div>
+            <div class="country" draggable="true" data-name="Allemagne">Allemagne</div>
+            <div class="country" draggable="true" data-name="Espagne">Espagne</div>
+            <div class="country" draggable="true" data-name="Italie">Italie</div>
+            <div class="country" draggable="true" data-name="Pologne">Pologne</div>
+        </div>
     </div>
     
     <div id="message"></div>
     
     <script>
-        // Données des pays et leurs positions approximatives sur la carte (% de la largeur/hauteur)
-        const europeanCountries = [
-            { name: "France", x: 40, y: 60 },
-            { name: "Allemagne", x: 55, y: 50 },
-            { name: "Espagne", x: 30, y: 70 },
-            { name: "Italie", x: 50, y: 75 },
-            { name: "Pologne", x: 65, y: 50 }
-        ];
-        
-        let draggedCountry = null;
-        let offsetX, offsetY;
-        
-        // Afficher les pays à placer
-        const countriesPool = document.getElementById('countries-pool');
-        europeanCountries.forEach(country => {
-            const div = document.createElement('div');
-            div.className = 'country';
-            div.textContent = country.name;
-            div.dataset.name = country.name;
-            div.draggable = true;
-            
-            div.addEventListener('dragstart', (e) => {
-                draggedCountry = div;
-                offsetX = e.offsetX;
-                offsetY = e.offsetY;
-                div.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', country.name);
+        // Positions approximatives (x,y) en pixels sur la carte
+        const countryPositions = {
+            "France": { x: 150, y: 200 },
+            "Allemagne": { x: 250, y: 150 },
+            "Espagne": { x: 100, y: 250 },
+            "Italie": { x: 220, y: 250 },
+            "Pologne": { x: 300, y: 150 }
+        };
+
+        let draggedItem = null;
+
+        // Drag & Drop
+        document.querySelectorAll('.country').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = e.target;
+                e.dataTransfer.setData('text/plain', e.target.dataset.name);
             });
-            
-            div.addEventListener('dragend', () => {
-                div.classList.remove('dragging');
-            });
-            
-            countriesPool.appendChild(div);
         });
-        
-        // Gérer le dépôt sur la carte
-        const map = document.getElementById('map');
-        map.addEventListener('dragover', (e) => {
+
+        document.getElementById('map').addEventListener('dragover', (e) => {
             e.preventDefault();
         });
-        
-        map.addEventListener('drop', (e) => {
+
+        document.getElementById('map').addEventListener('drop', (e) => {
             e.preventDefault();
-            if (!draggedCountry) return;
+            if (!draggedItem) return;
             
-            const countryName = draggedCountry.dataset.name;
-            const countryData = europeanCountries.find(c => c.name === countryName);
+            const countryName = e.dataTransfer.getData('text/plain');
+            const pos = countryPositions[countryName];
             
-            // Calculer la position relative à la carte
-            const rect = map.getBoundingClientRect();
-            const x = e.clientX - rect.left - offsetX;
-            const y = e.clientY - rect.top - offsetY;
-            
-            // Vérifier si le placement est approximativement correct (±10%)
-            const isCorrect = 
-                Math.abs(x/rect.width * 100 - countryData.x) < 10 && 
-                Math.abs(y/rect.height * 100 - countryData.y) < 10;
-            
-            if (isCorrect) {
-                draggedCountry.style.position = 'absolute';
-                draggedCountry.style.left = `${countryData.x/100 * rect.width}px`;
-                draggedCountry.style.top = `${countryData.y/100 * rect.height}px`;
-                draggedCountry.classList.add('placed');
-                draggedCountry.draggable = false;
-                map.appendChild(draggedCountry);
-                document.getElementById('message').textContent = `Bien joué ! ${countryName} est correctement placé.`;
-                
-                // Vérifier si tous les pays sont placés
-                if (document.querySelectorAll('#map .country').length === europeanCountries.length) {
-                    document.getElementById('message').textContent = "Félicitations ! Vous avez complété la carte de l'Europe ! 🎉";
-                }
+            // Vérifier si le dépôt est proche de la position cible (±30px)
+            if (
+                Math.abs(e.offsetX - pos.x) < 30 &&
+                Math.abs(e.offsetY - pos.y) < 30
+            ) {
+                draggedItem.style.position = 'absolute';
+                draggedItem.style.left = `${pos.x}px`;
+                draggedItem.style.top = `${pos.y}px`;
+                draggedItem.classList.add('placed');
+                draggedItem.draggable = false;
+                document.getElementById('map').appendChild(draggedItem);
+                document.getElementById('message').textContent = `Correct ! ${countryName} est bien placé.`;
             } else {
-                document.getElementById('message').textContent = "Essaie encore ! Ce n'est pas la bonne position pour " + countryName;
+                document.getElementById('message').textContent = "Essaie encore ! Ce n'est pas la bonne position.";
             }
-            
-            draggedCountry = null;
         });
     </script>
 </body>
