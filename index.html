@@ -104,14 +104,14 @@
             border: 2px solid #fff;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
             transition: all 0.2s;
-            background-size: cover;
+            background-size: 400px 400px;
         }
         
         .piece-in-slot {
             width: 100%;
             height: 100%;
             cursor: grab;
-            background-size: cover;
+            background-size: 400px 400px;
         }
         
         .controls {
@@ -187,6 +187,7 @@
         let placedPieces = {};
         let draggedPiece = null;
         let draggedPieceOrigin = null;
+        let fullImageSize = 400; // Taille de l'image originale
         
         function showMenu() {
             document.getElementById('menu').style.display = 'block';
@@ -229,7 +230,6 @@
                     slot.dataset.col = col;
                     slot.dataset.key = `${row}-${col}`;
                     
-                    // Case vierge sans image de fond
                     slot.addEventListener('dragover', e => e.preventDefault());
                     slot.addEventListener('drop', handleDrop);
                     
@@ -238,8 +238,10 @@
                 }
             }
             
-            // Créer les pièces avec l'image
+            // Créer les pièces avec le bon fragment d'image
             pieces = [];
+            const pieceSize = fullImageSize / puzzleSize;
+            
             for (let row = 0; row < puzzleSize; row++) {
                 for (let col = 0; col < puzzleSize; col++) {
                     const piece = document.createElement('div');
@@ -249,10 +251,17 @@
                     piece.dataset.col = col;
                     piece.dataset.correctKey = `${row}-${col}`;
                     
+                    // Taille affichée
                     piece.style.width = `${slotSize}px`;
                     piece.style.height = `${slotSize}px`;
+                    
+                    // Position du fragment dans l'image originale
+                    const xPos = -col * pieceSize;
+                    const yPos = -row * pieceSize;
+                    
                     piece.style.backgroundImage = `url('${PUZZLE_IMAGES[puzzleSize]}')`;
-                    piece.style.backgroundPosition = `-${col * slotSize}px -${row * slotSize}px`;
+                    piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
+                    piece.style.backgroundSize = `${fullImageSize}px ${fullImageSize}px`;
                     
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
@@ -302,6 +311,7 @@
             pieceCopy.className = 'piece-in-slot';
             pieceCopy.style.backgroundImage = draggedPiece.style.backgroundImage;
             pieceCopy.style.backgroundPosition = draggedPiece.style.backgroundPosition;
+            pieceCopy.style.backgroundSize = draggedPiece.style.backgroundSize;
             pieceCopy.addEventListener('dragstart', handleDragStart);
             
             slot.innerHTML = '';
