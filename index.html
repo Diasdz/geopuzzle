@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle à Niveaux</title>
+    <title>Puzzle avec Menu de Difficulté</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +19,7 @@
         h1 {
             color: #2c3e50;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 20px;
         }
         
         .level-info {
@@ -28,8 +28,35 @@
             font-size: 18px;
         }
         
+        #menu {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .difficulty-btn {
+            padding: 12px 25px;
+            margin: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .difficulty-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .easy { background-color: #2ecc71; }
+        .medium { background-color: #f39c12; }
+        .hard { background-color: #e74c3c; }
+        .expert { background-color: #9b59b6; }
+        
         .game-area {
-            display: flex;
+            display: none;
             flex-wrap: wrap;
             justify-content: center;
             gap: 30px;
@@ -129,40 +156,44 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-        
-        #next-level-btn {
-            background-color: #2ecc71;
-            display: none;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
-    <h1>Puzzle à Niveaux</h1>
-    <div class="level-info" id="level-info">Niveau 1 - 3x3</div>
+    <h1>Puzzle à Difficulté Variable</h1>
     
-    <div id="controls">
-        <button id="new-game-btn">Nouvelle Partie</button>
-        <button id="next-level-btn">Niveau Suivant</button>
+    <div id="menu">
+        <h2>Choisissez votre difficulté :</h2>
+        <button class="difficulty-btn easy" data-size="3">Facile (3×3)</button>
+        <button class="difficulty-btn medium" data-size="4">Moyen (4×4)</button>
+        <button class="difficulty-btn hard" data-size="5">Difficile (5×5)</button>
+        <button class="difficulty-btn expert" data-size="6">Expert (6×6)</button>
     </div>
     
     <div class="game-area">
-        <div id="puzzle-board"></div>
-        <div id="pieces-container"></div>
+        <div class="level-info" id="level-info"></div>
+        <div id="controls">
+            <button id="new-game-btn">Nouvelle Partie</button>
+            <button id="menu-btn">Retour au Menu</button>
+        </div>
+        
+        <div class="game-container">
+            <div id="puzzle-board"></div>
+            <div id="pieces-container"></div>
+        </div>
+        
+        <div id="victory-message"></div>
     </div>
-    
-    <div id="victory-message"></div>
 
     <script>
-        // Niveaux de difficulté
-        const LEVELS = [
-            { size: 3, image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
-            { size: 4, image: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
-            { size: 5, image: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
-            { size: 6, image: 'https://images.unsplash.com/photo-1615494937439-1a5e5f1910c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' }
-        ];
+        // Images pour chaque taille de puzzle
+        const PUZZLE_IMAGES = {
+            3: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
+            4: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
+            5: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
+            6: 'https://images.unsplash.com/photo-1615494937439-1a5e5f1910c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80'
+        };
         
-        let currentLevel = 0;
+        let puzzleSize = 3;
         let pieces = [];
         let slots = [];
         let placedPieces = {};
@@ -170,14 +201,24 @@
         let draggedPieceOrigin = null;
         let IMAGE_URL = '';
         
+        function showMenu() {
+            document.getElementById('menu').style.display = 'block';
+            document.querySelector('.game-area').style.display = 'none';
+        }
+        
+        function startGame(size) {
+            puzzleSize = size;
+            IMAGE_URL = PUZZLE_IMAGES[size];
+            document.getElementById('menu').style.display = 'none';
+            document.querySelector('.game-area').style.display = 'flex';
+            document.getElementById('level-info').textContent = `Niveau ${size}x${size}`;
+            initGame();
+        }
+        
         function initGame() {
             document.getElementById('victory-message').textContent = '';
             document.getElementById('victory-message').classList.remove('victory-animation');
-            document.getElementById('next-level-btn').style.display = 'none';
-            document.getElementById('level-info').textContent = `Niveau ${currentLevel + 1} - ${LEVELS[currentLevel].size}x${LEVELS[currentLevel].size}`;
-            
             placedPieces = {};
-            IMAGE_URL = LEVELS[currentLevel].image;
             
             createPuzzleBoard();
             createPuzzlePieces();
@@ -189,16 +230,15 @@
             board.innerHTML = '';
             slots = [];
             
-            const size = LEVELS[currentLevel].size;
-            const slotSize = 400 / size;
+            const slotSize = 400 / puzzleSize;
             
-            board.style.width = `${size * slotSize}px`;
-            board.style.height = `${size * slotSize}px`;
-            board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-            board.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+            board.style.width = `${puzzleSize * slotSize}px`;
+            board.style.height = `${puzzleSize * slotSize}px`;
+            board.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${puzzleSize}, 1fr)`;
             
-            for (let row = 0; row < size; row++) {
-                for (let col = 0; col < size; col++) {
+            for (let row = 0; row < puzzleSize; row++) {
+                for (let col = 0; col < puzzleSize; col++) {
                     const slot = document.createElement('div');
                     slot.className = 'puzzle-slot';
                     slot.dataset.row = row;
@@ -243,13 +283,12 @@
             container.innerHTML = '';
             pieces = [];
             
-            const size = LEVELS[currentLevel].size;
-            const pieceSize = 400 / size;
+            const pieceSize = 400 / puzzleSize;
             
-            container.style.width = `${size * pieceSize}px`;
+            container.style.width = `${puzzleSize * pieceSize}px`;
             
-            for (let row = 0; row < size; row++) {
-                for (let col = 0; col < size; col++) {
+            for (let row = 0; row < puzzleSize; row++) {
+                for (let col = 0; col < puzzleSize; col++) {
                     const piece = document.createElement('div');
                     piece.className = 'puzzle-piece';
                     piece.id = `piece-${row}-${col}`;
@@ -395,23 +434,16 @@
             }
             
             const victoryMessage = document.getElementById('victory-message');
-            const nextLevelBtn = document.getElementById('next-level-btn');
             
-            if (correctCount === LEVELS[currentLevel].size * LEVELS[currentLevel].size && 
-                totalPieces === LEVELS[currentLevel].size * LEVELS[currentLevel].size) {
+            if (correctCount === puzzleSize * puzzleSize && 
+                totalPieces === puzzleSize * puzzleSize) {
                 
-                victoryMessage.textContent = `Niveau ${currentLevel + 1} réussi !`;
+                victoryMessage.textContent = 'Bravo ! Puzzle résolu !';
                 victoryMessage.classList.add('victory-animation');
                 
                 document.querySelectorAll('#puzzle-board .piece-in-slot').forEach(piece => {
                     piece.style.animation = 'pulse 1.5s infinite';
                 });
-                
-                if (currentLevel < LEVELS.length - 1) {
-                    nextLevelBtn.style.display = 'inline-block';
-                } else {
-                    victoryMessage.textContent = 'Félicitations ! Vous avez terminé tous les niveaux !';
-                }
             } else {
                 victoryMessage.textContent = '';
                 victoryMessage.classList.remove('victory-animation');
@@ -422,18 +454,19 @@
             }
         }
         
-        function nextLevel() {
-            currentLevel++;
-            if (currentLevel >= LEVELS.length) {
-                currentLevel = 0; // Revenir au premier niveau si on a fini
-            }
-            initGame();
-        }
+        // Écouteurs d'événements
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = parseInt(btn.dataset.size);
+                startGame(size);
+            });
+        });
         
         document.getElementById('new-game-btn').addEventListener('click', initGame);
-        document.getElementById('next-level-btn').addEventListener('click', nextLevel);
+        document.getElementById('menu-btn').addEventListener('click', showMenu);
         
-        initGame();
+        // Afficher le menu au démarrage
+        showMenu();
     </script>
 </body>
 </html>
