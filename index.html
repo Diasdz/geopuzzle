@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Fonctionnel avec Image Complète</title>
+    <title>Puzzle Glisser-Déposer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,14 +13,24 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
         
         h1 {
             color: #2c3e50;
             text-align: center;
+            margin-bottom: 20px;
         }
         
-        #puzzle-container {
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1000px;
+        }
+        
+        #puzzle-board {
             width: 400px;
             height: 400px;
             display: grid;
@@ -28,27 +38,51 @@
             grid-template-rows: repeat(3, 1fr);
             gap: 2px;
             border: 3px solid #34495e;
-            margin: 20px 0;
+            background-color: #e0e0e0;
+            padding: 5px;
+        }
+        
+        .puzzle-slot {
+            border: 1px dashed #7f8c8d;
+            background-size: 400px 400px;
+        }
+        
+        #pieces-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 400px;
+            align-content: flex-start;
         }
         
         .puzzle-piece {
+            width: 120px;
+            height: 120px;
             background-size: 400px 400px;
-            border: 1px solid #fff;
-            cursor: pointer;
+            cursor: grab;
+            border: 2px solid #fff;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
             transition: transform 0.2s;
         }
         
         .puzzle-piece:hover {
-            transform: scale(1.03);
-            z-index: 1;
+            transform: scale(1.05);
+            z-index: 10;
         }
         
-        #empty-piece {
-            background-color: #ddd;
+        .puzzle-piece.dragging {
+            opacity: 0.8;
+            transform: scale(1.1);
+            z-index: 100;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
         
         #controls {
             margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         
         button {
@@ -58,127 +92,159 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #victory-message {
+            font-size: 24px;
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <h1>Puzzle Classique</h1>
-    
-    <div id="puzzle-container"></div>
+    <h1>Puzzle Glisser-Déposer</h1>
     
     <div id="controls">
-        <button id="shuffle-btn">Mélanger</button>
+        <button id="new-game-btn">Nouvelle Partie</button>
     </div>
+    
+    <div class="game-area">
+        <div id="puzzle-board"></div>
+        <div id="pieces-container"></div>
+    </div>
+    
+    <div id="victory-message"></div>
 
     <script>
-        // Image test garantie (chaton - licence libre Unsplash)
+        // Image garantie (chatons - Unsplash)
         const IMAGE_URL = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80';
         
-        // Créer les pièces du puzzle
-        function createPuzzle() {
-            const container = document.getElementById('puzzle-container');
+        // État du jeu
+        let correctPieces = 0;
+        let totalPieces = 9;
+        
+        // Initialisation
+        function initGame() {
+            correctPieces = 0;
+            document.getElementById('victory-message').textContent = '';
+            
+            createPuzzleBoard();
+            createPuzzlePieces();
+        }
+        
+        // Créer le plateau vide
+        function createPuzzleBoard() {
+            const board = document.getElementById('puzzle-board');
+            board.innerHTML = '';
+            
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'puzzle-slot';
+                    slot.dataset.row = row;
+                    slot.dataset.col = col;
+                    
+                    // Position de fond pour le repérage
+                    const xPos = -col * (400 / 3);
+                    const yPos = -row * (400 / 3);
+                    slot.style.backgroundPosition = `${xPos}px ${yPos}px`;
+                    
+                    // Gestion du dépôt
+                    slot.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                    });
+                    
+                    slot.addEventListener('drop', e => {
+                        e.preventDefault();
+                        const pieceId = e.dataTransfer.getData('text/plain');
+                        const piece = document.getElementById(pieceId);
+                        
+                        if (piece && isCorrectPosition(piece, slot)) {
+                            placePiece(piece, slot);
+                        }
+                    });
+                    
+                    board.appendChild(slot);
+                }
+            }
+        }
+        
+        // Créer les pièces à l'extérieur
+        function createPuzzlePieces() {
+            const container = document.getElementById('pieces-container');
             container.innerHTML = '';
             
-            // Créer 9 pièces (3x3)
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 3; col++) {
                     const piece = document.createElement('div');
                     piece.className = 'puzzle-piece';
+                    piece.id = `piece-${row}-${col}`;
                     piece.dataset.row = row;
                     piece.dataset.col = col;
                     
-                    // Positionner l'image de fond correctement
+                    // Position de l'image
                     const xPos = -col * (400 / 3);
                     const yPos = -row * (400 / 3);
                     piece.style.backgroundImage = `url('${IMAGE_URL}')`;
                     piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
                     
-                    // La dernière pièce est vide
-                    if (row === 2 && col === 2) {
-                        piece.id = 'empty-piece';
-                        piece.style.backgroundImage = 'none';
-                    } else {
-                        piece.addEventListener('click', movePiece);
-                    }
+                    // Gestion du glisser
+                    piece.draggable = true;
+                    piece.addEventListener('dragstart', e => {
+                        e.dataTransfer.setData('text/plain', piece.id);
+                        piece.classList.add('dragging');
+                    });
+                    
+                    piece.addEventListener('dragend', () => {
+                        piece.classList.remove('dragging');
+                    });
                     
                     container.appendChild(piece);
                 }
             }
         }
         
-        // Déplacer une pièce
-        function movePiece() {
-            const emptyPiece = document.getElementById('empty-piece');
-            const emptyRow = parseInt(emptyPiece.dataset.row);
-            const emptyCol = parseInt(emptyPiece.dataset.col);
+        // Vérifier si la pièce est à la bonne place
+        function isCorrectPosition(piece, slot) {
+            return piece.dataset.row === slot.dataset.row && 
+                   piece.dataset.col === slot.dataset.col;
+        }
+        
+        // Placer une pièce sur le plateau
+        function placePiece(piece, slot) {
+            // Cloner la pièce dans le slot
+            const clonedPiece = piece.cloneNode();
+            clonedPiece.id = `placed-${piece.id}`;
+            clonedPiece.style.width = '100%';
+            clonedPiece.style.height = '100%';
+            clonedPiece.style.cursor = 'default';
+            clonedPiece.draggable = false;
+            clonedPiece.classList.remove('dragging');
             
-            const clickedRow = parseInt(this.dataset.row);
-            const clickedCol = parseInt(this.dataset.col);
+            // Vider le slot et ajouter la pièce
+            slot.innerHTML = '';
+            slot.appendChild(clonedPiece);
             
-            // Vérifier si adjacent à la case vide
-            const isAdjacent = 
-                (Math.abs(clickedRow - emptyRow) === 1 && clickedCol === emptyCol) ||
-                (Math.abs(clickedCol - emptyCol) === 1 && clickedRow === emptyRow);
+            // Masquer la pièce originale
+            piece.style.visibility = 'hidden';
             
-            if (isAdjacent) {
-                // Échanger les positions
-                [this.dataset.row, emptyPiece.dataset.row] = [emptyPiece.dataset.row, this.dataset.row];
-                [this.dataset.col, emptyPiece.dataset.col] = [emptyPiece.dataset.col, this.dataset.col];
-                
-                // Mettre à jour l'affichage
-                updatePiecesPosition();
+            // Vérifier si le puzzle est complet
+            correctPieces++;
+            if (correctPieces === totalPieces) {
+                document.getElementById('victory-message').textContent = 
+                    'Félicitations ! Puzzle résolu !';
             }
         }
         
-        // Mettre à jour les positions des pièces
-        function updatePiecesPosition() {
-            document.querySelectorAll('.puzzle-piece').forEach(piece => {
-                const row = parseInt(piece.dataset.row);
-                const col = parseInt(piece.dataset.col);
-                
-                const xPos = -col * (400 / 3);
-                const yPos = -row * (400 / 3);
-                piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
-            });
-        }
+        // Nouvelle partie
+        document.getElementById('new-game-btn').addEventListener('click', initGame);
         
-        // Mélanger les pièces
-        function shufflePieces() {
-            // Simple mélange aléatoire
-            for (let i = 0; i < 200; i++) {
-                const movablePieces = getMovablePieces();
-                const randomPiece = movablePieces[Math.floor(Math.random() * movablePieces.length)];
-                simulateClick(randomPiece);
-            }
-        }
-        
-        function getMovablePieces() {
-            const emptyPiece = document.getElementById('empty-piece');
-            const emptyRow = parseInt(emptyPiece.dataset.row);
-            const emptyCol = parseInt(emptyPiece.dataset.col);
-            
-            return Array.from(document.querySelectorAll('.puzzle-piece'))
-                .filter(piece => {
-                    if (piece.id === 'empty-piece') return false;
-                    
-                    const row = parseInt(piece.dataset.row);
-                    const col = parseInt(piece.dataset.col);
-                    
-                    return (Math.abs(row - emptyRow) === 1 && col === emptyCol) ||
-                           (Math.abs(col - emptyCol) === 1 && row === emptyRow);
-                });
-        }
-        
-        function simulateClick(piece) {
-            const emptyPiece = document.getElementById('empty-piece');
-            [piece.dataset.row, emptyPiece.dataset.row] = [emptyPiece.dataset.row, piece.dataset.row];
-            [piece.dataset.col, emptyPiece.dataset.col] = [emptyPiece.dataset.col, piece.dataset.col];
-            updatePiecesPosition();
-        }
-        
-        // Initialisation
-        document.getElementById('shuffle-btn').addEventListener('click', shufflePieces);
-        createPuzzle();
+        // Démarrer le jeu
+        initGame();
     </script>
 </body>
 </html>
