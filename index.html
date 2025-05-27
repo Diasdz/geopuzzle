@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Glisser-Déposer</title>
+    <title>Puzzle avec Mélange Aléatoire</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -105,7 +105,7 @@
     </style>
 </head>
 <body>
-    <h1>Puzzle Glisser-Déposer</h1>
+    <h1>Puzzle avec Mélange Aléatoire</h1>
     
     <div id="controls">
         <button id="new-game-btn">Nouvelle Partie</button>
@@ -125,6 +125,7 @@
         // État du jeu
         let correctPieces = 0;
         let totalPieces = 9;
+        let pieces = [];
         
         // Initialisation
         function initGame() {
@@ -133,6 +134,7 @@
             
             createPuzzleBoard();
             createPuzzlePieces();
+            shufflePieces();
         }
         
         // Créer le plateau vide
@@ -177,6 +179,7 @@
         function createPuzzlePieces() {
             const container = document.getElementById('pieces-container');
             container.innerHTML = '';
+            pieces = [];
             
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 3; col++) {
@@ -204,8 +207,25 @@
                     });
                     
                     container.appendChild(piece);
+                    pieces.push(piece);
                 }
             }
+        }
+        
+        // Mélanger les pièces de manière aléatoire
+        function shufflePieces() {
+            const container = document.getElementById('pieces-container');
+            
+            // Mélanger le tableau des pièces
+            for (let i = pieces.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+            }
+            
+            // Réorganiser dans le DOM
+            pieces.forEach(piece => {
+                container.appendChild(piece);
+            });
         }
         
         // Vérifier si la pièce est à la bonne place
