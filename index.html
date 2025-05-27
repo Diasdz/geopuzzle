@@ -1,327 +1,137 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Géographique avec Unsplash</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f7fa;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        #game-container {
-            width: 100%;
-            max-width: 800px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        #map-container {
-            width: 100%;
-            height: 500px;
-            position: relative;
-            border: 2px solid #34495e;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            background-size: cover;
-            background-position: center;
-            background-color: #e8f4f8;
-        }
-        
-        #country-pool {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #ecf0f1;
-            border-radius: 8px;
-            width: 90%;
-        }
-        
-        .country-item {
-            padding: 10px 15px;
-            background-color: #3498db;
-            color: white;
-            border-radius: 5px;
-            cursor: grab;
-            user-select: none;
-            transition: transform 0.2s;
-        }
-        
-        .country-item:hover {
-            transform: scale(1.05);
-        }
-        
-        .country-slot {
-            position: absolute;
-            padding: 8px 12px;
-            background-color: #2ecc71;
-            color: white;
-            border-radius: 4px;
-            cursor: default;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        #controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        button {
-            padding: 10px 15px;
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #1a252f;
-        }
-        
-        #message {
-            margin-top: 20px;
-            font-weight: bold;
-            min-height: 24px;
-            color: #27ae60;
-            text-align: center;
-        }
-        
-        #image-selector {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #ecf0f1;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-        }
-        
-        select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            margin-right: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3x3 Puzzle</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    #puzzle-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: 90vmin;
+      height: 90vmin;
+      gap: 2px;
+      border: 4px solid #0077cc;
+      margin-top: 20px;
+    }
+
+    .tile {
+      background-size: 300%;
+      background-repeat: no-repeat;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .drag-over {
+      outline: 2px dashed #0077cc;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h1>Puzzle Géographique<br><small>avec images Unsplash</small></h1>
-    
-    <div id="image-selector">
-        <label for="theme-select">Choisissez un thème :</label>
-        <select id="theme-select">
-            <option value="europe">Carte de l'Europe</option>
-            <option value="world">Carte du Monde</option>
-            <option value="africa">Carte de l'Afrique</option>
-        </select>
-        <button id="load-image-btn">Charger l'image</button>
-    </div>
-    
-    <div id="game-container">
-        <div id="controls">
-            <button id="start-btn">Commencer le jeu</button>
-            <button id="reset-btn">Réinitialiser</button>
-        </div>
-        
-        <div id="map-container">
-            <!-- La carte sera chargée ici -->
-        </div>
-        
-        <div id="country-pool">
-            <!-- Les pays seront ajoutés ici -->
-        </div>
-        
-        <div id="message"></div>
-    </div>
+  <h1>3x3 Puzzle Game</h1>
+  <div id="puzzle-container"></div>
+  <button onclick="shuffleTiles()">Shuffle</button>
 
-    <script>
-        // Configuration avec des URLs Unsplash en HTTPS
-        const imageThemes = {
-            europe: {
-                url: 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
-                countries: [
-                    { name: "France", x: 180, y: 280 },
-                    { name: "Allemagne", x: 280, y: 230 },
-                    { name: "Espagne", x: 130, y: 330 },
-                    { name: "Italie", x: 260, y: 300 },
-                    { name: "Royaume-Uni", x: 150, y: 200 }
-                ]
-            },
-            world: {
-                url: 'https://images.unsplash.com/photo-1485083269755-a7b559a4fe5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
-                countries: [
-                    { name: "France", x: 450, y: 250 },
-                    { name: "États-Unis", x: 150, y: 250 },
-                    { name: "Chine", x: 650, y: 300 },
-                    { name: "Brésil", x: 300, y: 400 }
-                ]
-            },
-            africa: {
-                url: 'https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
-                countries: [
-                    { name: "Maroc", x: 200, y: 150 },
-                    { name: "Égypte", x: 400, y: 180 },
-                    { name: "Afrique du Sud", x: 350, y: 450 }
-                ]
-            }
-        };
+  <script>
+    const imageUrl = "https://source.unsplash.com/random/600x600";
+    const container = document.getElementById("puzzle-container");
 
-        // Variables du jeu
-        let currentConfig = {};
-        let score = 0;
-        let gameStarted = false;
+    let positions = [];
+    for (let y = 0; y < 3; y++) {
+      for (let x = 0; x < 3; x++) {
+        positions.push({ x, y });
+      }
+    }
 
-        // Initialisation
-        document.getElementById('load-image-btn').addEventListener('click', loadImageTheme);
-        document.getElementById('start-btn').addEventListener('click', initGame);
-        document.getElementById('reset-btn').addEventListener('click', resetGame);
+    function createTile(x, y, index) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.draggable = true;
+      tile.dataset.index = index;
+      tile.style.backgroundImage = `url(${imageUrl})`;
+      tile.style.backgroundPosition = `${-x * 100}% ${-y * 100}%`;
+      tile.style.width = "100%";
+      tile.style.height = "100%";
 
-        function loadImageTheme() {
-            const theme = document.getElementById('theme-select').value;
-            currentConfig = imageThemes[theme];
-            
-            // Charger l'image de fond
-            document.getElementById('map-container').style.backgroundImage = `url('${currentConfig.url}')`;
-            
-            // Afficher un message
-            document.getElementById('message').textContent = `Image chargée : ${theme.replace(/^\w/, c => c.toUpperCase())}`;
-            document.getElementById('message').style.color = "#3498db";
-            
-            // Réinitialiser le jeu
-            resetGame();
-        }
+      tile.addEventListener("dragstart", dragStart);
+      tile.addEventListener("dragover", dragOver);
+      tile.addEventListener("dragleave", dragLeave);
+      tile.addEventListener("drop", drop);
+      tile.addEventListener("dragend", dragEnd);
+      return tile;
+    }
 
-        function initGame() {
-            if (!currentConfig.url || gameStarted) return;
-            gameStarted = true;
-            
-            const countryPool = document.getElementById('country-pool');
-            countryPool.innerHTML = '';
-            
-            // Créer les éléments de pays
-            currentConfig.countries.forEach(country => {
-                const countryElement = document.createElement('div');
-                countryElement.className = 'country-item';
-                countryElement.textContent = country.name;
-                countryElement.draggable = true;
-                countryElement.dataset.country = country.name;
-                
-                countryElement.addEventListener('dragstart', function(e) {
-                    e.dataTransfer.setData('text/plain', country.name);
-                    this.style.opacity = '0.6';
-                });
-                
-                countryElement.addEventListener('dragend', function() {
-                    this.style.opacity = '1';
-                });
-                
-                countryPool.appendChild(countryElement);
-            });
-            
-            // Configurer la zone de dépôt
-            const mapContainer = document.getElementById('map-container');
-            mapContainer.addEventListener('dragover', function(e) {
-                e.preventDefault();
-            });
-            
-            mapContainer.addEventListener('drop', function(e) {
-                e.preventDefault();
-                const countryName = e.dataTransfer.getData('text/plain');
-                const country = currentConfig.countries.find(c => c.name === countryName);
-                
-                if (country) {
-                    const rect = this.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    // Vérifier la position
-                    const tolerance = 40;
-                    const isCorrect = (
-                        Math.abs(x - country.x) < tolerance && 
-                        Math.abs(y - country.y) < tolerance
-                    );
-                    
-                    if (isCorrect) {
-                        placeCountry(country);
-                        updateScore();
-                    } else {
-                        showMessage("Position incorrecte, essayez encore !", "error");
-                    }
-                }
-            });
-            
-            showMessage("Placez les pays sur la carte !", "info");
-        }
+    function setupPuzzle() {
+      container.innerHTML = "";
+      positions.forEach((pos, index) => {
+        const tile = createTile(pos.x, pos.y, index);
+        container.appendChild(tile);
+      });
+    }
 
-        function placeCountry(country) {
-            const mapContainer = document.getElementById('map-container');
-            
-            // Créer le marqueur
-            const marker = document.createElement('div');
-            marker.className = 'country-slot';
-            marker.textContent = country.name;
-            marker.style.left = `${country.x}px`;
-            marker.style.top = `${country.y}px`;
-            mapContainer.appendChild(marker);
-            
-            // Retirer de la pool
-            const item = document.querySelector(`.country-item[data-country="${country.name}"]`);
-            if (item) item.style.display = 'none';
-            
-            showMessage(`Bien joué ! ${country.name} est correctement placé.`, "success");
-            score++;
-        }
+    function shuffleTiles() {
+      positions.sort(() => Math.random() - 0.5);
+      setupPuzzle();
+    }
 
-        function updateScore() {
-            if (score === currentConfig.countries.length) {
-                showMessage(`Félicitations ! Vous avez placé tous les pays.`, "success");
-            }
-        }
+    let dragged = null;
 
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            
-            const colors = {
-                success: "#27ae60",
-                error: "#e74c3c",
-                info: "#3498db"
-            };
-            messageEl.style.color = colors[type] || "#2c3e50";
-        }
+    function dragStart(e) {
+      dragged = e.target;
+      e.dataTransfer.effectAllowed = "move";
+    }
 
-        function resetGame() {
-            document.getElementById('map-container').innerHTML = '';
-            document.getElementById('country-pool').innerHTML = '';
-            document.getElementById('message').textContent = '';
-            score = 0;
-            gameStarted = false;
-            
-            // Recharger l'image si déjà sélectionnée
-            if (currentConfig.url) {
-                document.getElementById('map-container').style.backgroundImage = `url('${currentConfig.url}')`;
-            }
-        }
-    </script>
+    function dragOver(e) {
+      e.preventDefault();
+      if (e.target !== dragged) e.target.classList.add("drag-over");
+    }
+
+    function dragLeave(e) {
+      e.target.classList.remove("drag-over");
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      e.target.classList.remove("drag-over");
+
+      if (dragged && e.target !== dragged) {
+        const draggedIndex = [...container.children].indexOf(dragged);
+        const targetIndex = [...container.children].indexOf(e.target);
+
+        container.insertBefore(dragged, container.children[targetIndex]);
+        container.insertBefore(e.target, container.children[draggedIndex]);
+      }
+    }
+
+    function dragEnd() {
+      document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+    }
+
+    setupPuzzle();
+  </script>
 </body>
 </html>
