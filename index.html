@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Menu de Difficulté</title>
+    <title>Puzzle avec Cases Vierges</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -69,7 +69,7 @@
         
         #puzzle-board {
             border: 3px solid #34495e;
-            background-color: #e0e0e0;
+            background-color: #f8f9fa;
             padding: 5px;
             display: grid;
             gap: 2px;
@@ -79,7 +79,12 @@
         .puzzle-slot {
             border: 1px dashed #7f8c8d;
             position: relative;
-            background-size: cover;
+            background-color: #e9ecef;
+        }
+        
+        .puzzle-slot.highlight {
+            border: 2px solid #27ae60;
+            background-color: rgba(39, 174, 96, 0.1);
         }
         
         #pieces-container {
@@ -99,6 +104,14 @@
             border: 2px solid #fff;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
             transition: all 0.2s;
+            background-size: cover;
+        }
+        
+        .piece-in-slot {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            background-size: cover;
         }
         
         .controls {
@@ -134,7 +147,7 @@
     </style>
 </head>
 <body>
-    <h1>Puzzle à Difficulté Variable</h1>
+    <h1>Puzzle avec Cases Vierges</h1>
     
     <div id="menu">
         <h2>Choisissez votre difficulté :</h2>
@@ -206,7 +219,7 @@
             board.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
             board.style.gridTemplateRows = `repeat(${puzzleSize}, 1fr)`;
             
-            // Créer les cases
+            // Créer les cases vierges
             slots = [];
             for (let row = 0; row < puzzleSize; row++) {
                 for (let col = 0; col < puzzleSize; col++) {
@@ -216,11 +229,7 @@
                     slot.dataset.col = col;
                     slot.dataset.key = `${row}-${col}`;
                     
-                    const xPos = -col * slotSize;
-                    const yPos = -row * slotSize;
-                    slot.style.backgroundImage = `url('${PUZZLE_IMAGES[puzzleSize]}')`;
-                    slot.style.backgroundPosition = `${xPos}px ${yPos}px`;
-                    
+                    // Case vierge sans image de fond
                     slot.addEventListener('dragover', e => e.preventDefault());
                     slot.addEventListener('drop', handleDrop);
                     
@@ -229,7 +238,7 @@
                 }
             }
             
-            // Créer les pièces
+            // Créer les pièces avec l'image
             pieces = [];
             for (let row = 0; row < puzzleSize; row++) {
                 for (let col = 0; col < puzzleSize; col++) {
