@@ -1,117 +1,399 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Puzzle 3x3 - Drag and Drop</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background-color: #f0f8ff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-
-    #puzzle-container {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      grid-template-rows: repeat(3, 100px);
-      gap: 2px;
-      margin-top: 20px;
-    }
-
-    .tile {
-      width: 100px;
-      height: 100px;
-      background-image: url('https://images.unsplash.com/photo-1602524819845-38a6b9c2b90c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');
-      background-size: 300px 300px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      cursor: grab;
-    }
-
-    .drag-over {
-      outline: 2px dashed #3498db;
-    }
-
-    @media (max-width: 400px) {
-      #puzzle-container {
-        grid-template-columns: repeat(3, 80px);
-        grid-template-rows: repeat(3, 80px);
-      }
-
-      .tile {
-        width: 80px;
-        height: 80px;
-        background-size: 240px 240px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Classique</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #puzzle-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            width: 400px;
+            height: 400px;
+            margin: 20px 0;
+            border: 2px solid #34495e;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+            overflow: hidden;
+        }
+        
+        .puzzle-slot {
+            background-color: #bdc3c7;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .puzzle-piece {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: 400px 400px;
+            cursor: grab;
+            transition: transform 0.2s;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        
+        .puzzle-piece:hover {
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        .puzzle-piece.correct {
+            border: 2px solid #27ae60;
+        }
+        
+        #pieces-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            width: 90%;
+        }
+        
+        #controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        #timer, #moves {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        #image-selector {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        select, input {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        #victory-message {
+            font-size: 1.5em;
+            color: #27ae60;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+            min-height: 40px;
+        }
+        
+        @media (max-width: 600px) {
+            #puzzle-area {
+                width: 300px;
+                height: 300px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="game-container">
+        <h1>Puzzle Classique</h1>
+        
+        <div id="image-selector">
+            <label for="difficulty">Difficulté :</label>
+            <select id="difficulty">
+                <option value="9">3x3 (Facile)</option>
+                <option value="16" selected>4x4 (Moyen)</option>
+                <option value="25">5x5 (Difficile)</option>
+            </select>
+            
+            <label for="image-choice">Image :</label>
+            <select id="image-choice">
+                <option value="nature">Nature</option>
+                <option value="animaux">Animaux</option>
+                <option value="villes">Villes</option>
+                <option value="art">Art</option>
+            </select>
+            
+            <button id="start-btn">Nouvelle Partie</button>
+        </div>
+        
+        <div id="controls">
+            <div id="timer">⏱️ Temps : 0:00</div>
+            <div id="moves">↔️ Mouvements : 0</div>
+        </div>
+        
+        <div id="puzzle-area"></div>
+        
+        <div id="pieces-container"></div>
+        
+        <div id="victory-message"></div>
+    </div>
 
-  <h1>🧩 What's your Puzzle IQ?</h1>
-  <div id="puzzle-container"></div>
+    <script>
+        // Configuration des images Unsplash (toutes en HTTPS)
+        const imageOptions = {
+            nature: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=600&q=80',
+            animaux: 'https://images.unsplash.com/photo-1474511320723-9a56873867b5?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=600&q=80',
+            villes: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=600&q=80',
+            art: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=600&q=80'
+        };
 
-  <script>
-    const container = document.getElementById('puzzle-container');
-    const tiles = [];
+        // Variables du jeu
+        let puzzleSize = 4;
+        let pieces = [];
+        let emptySlot = null;
+        let time = 0;
+        let moves = 0;
+        let timerInterval = null;
+        let currentImage = '';
+        let pieceSize = 0;
 
-    for (let i = 0; i < 9; i++) {
-      const tile = document.createElement('div');
-      tile.classList.add('tile');
-      tile.setAttribute('draggable', true);
-      tile.style.backgroundPosition = `-${(i % 3) * 100}px -${Math.floor(i / 3) * 100}px`;
-      tile.dataset.index = i;
-      tiles.push(tile);
-    }
+        // Éléments DOM
+        const puzzleArea = document.getElementById('puzzle-area');
+        const piecesContainer = document.getElementById('pieces-container');
+        const timerEl = document.getElementById('timer');
+        const movesEl = document.getElementById('moves');
+        const victoryMessage = document.getElementById('victory-message');
+        const startBtn = document.getElementById('start-btn');
+        const difficultySelect = document.getElementById('difficulty');
+        const imageChoice = document.getElementById('image-choice');
 
-    // Shuffle
-    tiles.sort(() => Math.random() - 0.5);
-
-    tiles.forEach(tile => container.appendChild(tile));
-
-    let dragged;
-
-    container.addEventListener('dragstart', e => {
-      dragged = e.target;
-    });
-
-    container.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (e.target.classList.contains('tile')) {
-        e.target.classList.add('drag-over');
-      }
-    });
-
-    container.addEventListener('dragleave', e => {
-      if (e.target.classList.contains('tile')) {
-        e.target.classList.remove('drag-over');
-      }
-    });
-
-    container.addEventListener('drop', e => {
-      if (e.target.classList.contains('tile') && dragged !== e.target) {
-        e.target.classList.remove('drag-over');
-
-        const draggedIndex = Array.from(container.children).indexOf(dragged);
-        const targetIndex = Array.from(container.children).indexOf(e.target);
-
-        if (draggedIndex > -1 && targetIndex > -1) {
-          container.insertBefore(dragged, container.children[targetIndex]);
-          container.insertBefore(e.target, container.children[draggedIndex]);
+        // Démarrer une nouvelle partie
+        function startNewGame() {
+            // Réinitialiser les variables
+            clearInterval(timerInterval);
+            time = 0;
+            moves = 0;
+            timerEl.textContent = '⏱️ Temps : 0:00';
+            movesEl.textContent = '↔️ Mouvements : 0';
+            victoryMessage.textContent = '';
+            
+            // Configurer la taille du puzzle
+            puzzleSize = Math.sqrt(parseInt(difficultySelect.value));
+            puzzleArea.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
+            puzzleArea.innerHTML = '';
+            piecesContainer.innerHTML = '';
+            
+            // Charger l'image
+            currentImage = imageOptions[imageChoice.value];
+            pieceSize = 400 / puzzleSize;
+            
+            // Créer les pièces du puzzle
+            createPuzzlePieces();
+            
+            // Mélanger les pièces
+            shufflePieces();
+            
+            // Démarrer le chrono
+            timerInterval = setInterval(updateTimer, 1000);
         }
-      }
-    });
-  </script>
 
+        // Créer les pièces du puzzle
+        function createPuzzlePieces() {
+            pieces = [];
+            
+            for (let row = 0; row < puzzleSize; row++) {
+                for (let col = 0; col < puzzleSize; col++) {
+                    // La dernière pièce est vide
+                    if (row === puzzleSize - 1 && col === puzzleSize - 1) {
+                        emptySlot = { row, col };
+                        continue;
+                    }
+                    
+                    const piece = document.createElement('div');
+                    piece.className = 'puzzle-piece';
+                    piece.dataset.row = row;
+                    piece.dataset.col = col;
+                    piece.style.backgroundImage = `url(${currentImage})`;
+                    piece.style.backgroundPosition = `-${col * pieceSize}px -${row * pieceSize}px`;
+                    
+                    // Gestion du glisser-déposer
+                    piece.draggable = true;
+                    piece.addEventListener('dragstart', dragStart);
+                    piece.addEventListener('click', () => tryMovePiece(piece));
+                    
+                    pieces.push({
+                        element: piece,
+                        currentRow: row,
+                        currentCol: col,
+                        correctRow: row,
+                        correctCol: col
+                    });
+                    
+                    piecesContainer.appendChild(piece);
+                }
+            }
+        }
+
+        // Mélanger les pièces
+        function shufflePieces() {
+            // Algorithme de mélange valide (permettant une solution possible)
+            for (let i = 0; i < 1000; i++) {
+                const movablePieces = getMovablePieces();
+                const randomPiece = movablePieces[Math.floor(Math.random() * movablePieces.length)];
+                movePiece(randomPiece);
+            }
+            
+            // Réinitialiser le compteur de mouvements après le mélange
+            moves = 0;
+            movesEl.textContent = `↔️ Mouvements : ${moves}`;
+        }
+
+        // Gestion du glisser-déposer
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.row + ',' + e.target.dataset.col);
+        }
+
+        function tryMovePiece(piece) {
+            const row = parseInt(piece.dataset.row);
+            const col = parseInt(piece.dataset.col);
+            
+            // Vérifier si la pièce peut être déplacée vers l'emplacement vide
+            if ((Math.abs(row - emptySlot.row) === 1 && col === emptySlot.col) || 
+                (Math.abs(col - emptySlot.col) === 1 && row === emptySlot.row)) {
+                movePiece(piece);
+            }
+        }
+
+        function movePiece(piece) {
+            const row = parseInt(piece.dataset.row);
+            const col = parseInt(piece.dataset.col);
+            
+            // Échanger avec l'emplacement vide
+            piece.dataset.row = emptySlot.row;
+            piece.dataset.col = emptySlot.col;
+            emptySlot = { row, col };
+            
+            // Mettre à jour le compteur de mouvements
+            moves++;
+            movesEl.textContent = `↔️ Mouvements : ${moves}`;
+            
+            // Vérifier si le puzzle est résolu
+            checkVictory();
+        }
+
+        function getMovablePieces() {
+            const movablePieces = [];
+            
+            pieces.forEach(piece => {
+                const row = parseInt(piece.element.dataset.row);
+                const col = parseInt(piece.element.dataset.col);
+                
+                if ((Math.abs(row - emptySlot.row) === 1 && col === emptySlot.col) || 
+                    (Math.abs(col - emptySlot.col) === 1 && row === emptySlot.row)) {
+                    movablePieces.push(piece.element);
+                }
+            });
+            
+            return movablePieces;
+        }
+
+        // Mettre à jour le chronomètre
+        function updateTimer() {
+            time++;
+            const minutes = Math.floor(time / 60);
+            const seconds = time % 60;
+            timerEl.textContent = `⏱️ Temps : ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        // Vérifier si le puzzle est résolu
+        function checkVictory() {
+            let solved = true;
+            
+            pieces.forEach(piece => {
+                const currentRow = parseInt(piece.element.dataset.row);
+                const currentCol = parseInt(piece.element.dataset.col);
+                
+                if (currentRow !== piece.correctRow || currentCol !== piece.correctCol) {
+                    solved = false;
+                }
+            });
+            
+            if (solved) {
+                clearInterval(timerInterval);
+                victoryMessage.textContent = `Félicitations ! Résolu en ${time} secondes et ${moves} mouvements.`;
+                
+                // Marquer toutes les pièces comme correctes
+                pieces.forEach(piece => {
+                    piece.element.classList.add('correct');
+                });
+            }
+        }
+
+        // Événements
+        startBtn.addEventListener('click', startNewGame);
+        
+        // Zone de dépôt
+        puzzleArea.addEventListener('dragover', e => {
+            e.preventDefault();
+        });
+        
+        puzzleArea.addEventListener('drop', e => {
+            e.preventDefault();
+            const [row, col] = e.dataTransfer.getData('text/plain').split(',').map(Number);
+            const piece = pieces.find(p => 
+                parseInt(p.element.dataset.row) === row && 
+                parseInt(p.element.dataset.col) === col
+            );
+            
+            if (piece) {
+                tryMovePiece(piece.element);
+            }
+        });
+
+        // Démarrer une partie par défaut
+        startNewGame();
+    </script>
 </body>
 </html>
