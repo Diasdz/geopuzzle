@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Pièces à Droite</title>
+    <title>Puzzle à Niveaux</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +19,13 @@
         h1 {
             color: #2c3e50;
             text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .level-info {
+            color: #7f8c8d;
             margin-bottom: 20px;
+            font-size: 18px;
         }
         
         .game-area {
@@ -31,21 +37,17 @@
         }
         
         #puzzle-board {
-            width: 400px;
-            height: 400px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 2px;
             border: 3px solid #34495e;
             background-color: #e0e0e0;
             padding: 5px;
+            display: grid;
+            gap: 2px;
         }
         
         .puzzle-slot {
             border: 1px dashed #7f8c8d;
-            background-size: 400px 400px;
             position: relative;
+            background-size: cover;
         }
         
         .puzzle-slot.highlight {
@@ -57,7 +59,6 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            width: 400px;
             align-content: flex-start;
             min-height: 120px;
             background-color: #ecf0f1;
@@ -67,9 +68,6 @@
         }
         
         .puzzle-piece {
-            width: 120px;
-            height: 120px;
-            background-size: 400px 400px;
             cursor: grab;
             border: 2px solid #fff;
             box-shadow: 0 3px 10px rgba(0,0,0,0.2);
@@ -91,7 +89,6 @@
         .piece-in-slot {
             width: 100%;
             height: 100%;
-            background-size: 400px 400px;
             cursor: grab;
         }
         
@@ -132,13 +129,21 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+        
+        #next-level-btn {
+            background-color: #2ecc71;
+            display: none;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Puzzle avec Pièces à Droite</h1>
+    <h1>Puzzle à Niveaux</h1>
+    <div class="level-info" id="level-info">Niveau 1 - 3x3</div>
     
     <div id="controls">
         <button id="new-game-btn">Nouvelle Partie</button>
+        <button id="next-level-btn">Niveau Suivant</button>
     </div>
     
     <div class="game-area">
@@ -149,18 +154,30 @@
     <div id="victory-message"></div>
 
     <script>
-        const IMAGE_URL = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80';
+        // Niveaux de difficulté
+        const LEVELS = [
+            { size: 3, image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
+            { size: 4, image: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
+            { size: 5, image: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' },
+            { size: 6, image: 'https://images.unsplash.com/photo-1615494937439-1a5e5f1910c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80' }
+        ];
         
+        let currentLevel = 0;
         let pieces = [];
         let slots = [];
         let placedPieces = {};
         let draggedPiece = null;
         let draggedPieceOrigin = null;
+        let IMAGE_URL = '';
         
         function initGame() {
             document.getElementById('victory-message').textContent = '';
             document.getElementById('victory-message').classList.remove('victory-animation');
+            document.getElementById('next-level-btn').style.display = 'none';
+            document.getElementById('level-info').textContent = `Niveau ${currentLevel + 1} - ${LEVELS[currentLevel].size}x${LEVELS[currentLevel].size}`;
+            
             placedPieces = {};
+            IMAGE_URL = LEVELS[currentLevel].image;
             
             createPuzzleBoard();
             createPuzzlePieces();
@@ -172,16 +189,24 @@
             board.innerHTML = '';
             slots = [];
             
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 3; col++) {
+            const size = LEVELS[currentLevel].size;
+            const slotSize = 400 / size;
+            
+            board.style.width = `${size * slotSize}px`;
+            board.style.height = `${size * slotSize}px`;
+            board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+            
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
                     const slot = document.createElement('div');
                     slot.className = 'puzzle-slot';
                     slot.dataset.row = row;
                     slot.dataset.col = col;
                     slot.dataset.key = `${row}-${col}`;
                     
-                    const xPos = -col * (400 / 3);
-                    const yPos = -row * (400 / 3);
+                    const xPos = -col * slotSize;
+                    const yPos = -row * slotSize;
                     slot.style.backgroundPosition = `${xPos}px ${yPos}px`;
                     
                     slot.addEventListener('dragover', e => {
@@ -218,8 +243,13 @@
             container.innerHTML = '';
             pieces = [];
             
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 3; col++) {
+            const size = LEVELS[currentLevel].size;
+            const pieceSize = 400 / size;
+            
+            container.style.width = `${size * pieceSize}px`;
+            
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
                     const piece = document.createElement('div');
                     piece.className = 'puzzle-piece';
                     piece.id = `piece-${row}-${col}`;
@@ -227,10 +257,12 @@
                     piece.dataset.col = col;
                     piece.dataset.correctKey = `${row}-${col}`;
                     
-                    const xPos = -col * (400 / 3);
-                    const yPos = -row * (400 / 3);
+                    const xPos = -col * pieceSize;
+                    const yPos = -row * pieceSize;
                     piece.style.backgroundImage = `url('${IMAGE_URL}')`;
                     piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
+                    piece.style.width = `${pieceSize}px`;
+                    piece.style.height = `${pieceSize}px`;
                     
                     piece.draggable = true;
                     piece.addEventListener('dragstart', e => {
@@ -276,23 +308,19 @@
         }
         
         function shufflePieces() {
-            // Mélanger les pièces dans le conteneur de droite
             const container = document.getElementById('pieces-container');
             const shuffledPieces = [...pieces].sort(() => Math.random() - 0.5);
             
-            // Vider toutes les cases à gauche
             slots.forEach(slot => {
                 slot.innerHTML = '';
             });
             
-            // Placer toutes les pièces mélangées dans le conteneur de droite
             container.innerHTML = '';
             shuffledPieces.forEach(piece => {
                 piece.style.display = 'block';
                 container.appendChild(piece);
             });
             
-            // Réinitialiser les pièces placées
             placedPieces = {};
         }
         
@@ -367,14 +395,23 @@
             }
             
             const victoryMessage = document.getElementById('victory-message');
+            const nextLevelBtn = document.getElementById('next-level-btn');
             
-            if (correctCount === 9 && totalPieces === 9) {
-                victoryMessage.textContent = 'Bravo ! Vous avez résolu le puzzle !';
+            if (correctCount === LEVELS[currentLevel].size * LEVELS[currentLevel].size && 
+                totalPieces === LEVELS[currentLevel].size * LEVELS[currentLevel].size) {
+                
+                victoryMessage.textContent = `Niveau ${currentLevel + 1} réussi !`;
                 victoryMessage.classList.add('victory-animation');
                 
                 document.querySelectorAll('#puzzle-board .piece-in-slot').forEach(piece => {
                     piece.style.animation = 'pulse 1.5s infinite';
                 });
+                
+                if (currentLevel < LEVELS.length - 1) {
+                    nextLevelBtn.style.display = 'inline-block';
+                } else {
+                    victoryMessage.textContent = 'Félicitations ! Vous avez terminé tous les niveaux !';
+                }
             } else {
                 victoryMessage.textContent = '';
                 victoryMessage.classList.remove('victory-animation');
@@ -385,7 +422,16 @@
             }
         }
         
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= LEVELS.length) {
+                currentLevel = 0; // Revenir au premier niveau si on a fini
+            }
+            initGame();
+        }
+        
         document.getElementById('new-game-btn').addEventListener('click', initGame);
+        document.getElementById('next-level-btn').addEventListener('click', nextLevel);
         
         initGame();
     </script>
