@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Retour aux Pièces</title>
+    <title>Puzzle avec Détection Automatique</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -120,6 +120,17 @@
             margin-top: 20px;
             text-align: center;
             min-height: 40px;
+            transition: all 0.5s;
+        }
+        
+        .victory-animation {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
         #check-button {
@@ -128,11 +139,10 @@
     </style>
 </head>
 <body>
-    <h1>Puzzle avec Retour aux Pièces</h1>
+    <h1>Puzzle avec Détection Automatique</h1>
     
     <div id="controls">
         <button id="new-game-btn">Nouvelle Partie</button>
-        <button id="check-button">Vérifier la solution</button>
     </div>
     
     <div class="game-area">
@@ -153,6 +163,7 @@
         
         function initGame() {
             document.getElementById('victory-message').textContent = '';
+            document.getElementById('victory-message').classList.remove('victory-animation');
             placedPieces = {};
             
             createPuzzleBoard();
@@ -244,7 +255,6 @@
                 }
             }
             
-            // Activer le dépôt dans la zone de pièces
             container.addEventListener('dragover', e => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -270,7 +280,6 @@
         }
         
         function returnPieceToContainer(piece, origin) {
-            // Retirer la pièce de son emplacement précédent
             if (origin && origin !== 'pieces-container') {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${origin}"]`);
                 if (originSlot) {
@@ -279,9 +288,9 @@
                 }
             }
             
-            // Réactiver la pièce originale
             piece.style.display = 'block';
             document.getElementById('pieces-container').appendChild(piece);
+            checkVictory(); // Vérifier après avoir retiré une pièce
         }
         
         function shufflePieces() {
@@ -300,7 +309,6 @@
         function placePiece(piece, slot, origin) {
             const slotKey = slot.dataset.key;
             
-            // Si la pièce vient d'une autre case, la retirer de cette case
             if (origin && origin !== 'pieces-container') {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${origin}"]`);
                 if (originSlot) {
@@ -309,7 +317,6 @@
                 }
             }
             
-            // Si la case cible contient déjà une pièce, la remettre dans le conteneur
             if (placedPieces[slotKey]) {
                 const existingPieceId = placedPieces[slotKey];
                 const existingPiece = document.getElementById(existingPieceId);
@@ -318,13 +325,11 @@
                 }
             }
             
-            // Créer une copie pour la case
             const pieceCopy = document.createElement('div');
             pieceCopy.className = 'piece-in-slot';
             pieceCopy.style.backgroundImage = `url('${IMAGE_URL}')`;
             pieceCopy.style.backgroundPosition = piece.style.backgroundPosition;
             
-            // Rendre la copie déplaçable
             pieceCopy.draggable = true;
             pieceCopy.addEventListener('dragstart', e => {
                 draggedPiece = piece;
@@ -332,23 +337,23 @@
                 e.dataTransfer.setData('text/plain', piece.id);
             });
             
-            // Vider la case et ajouter la pièce
             slot.innerHTML = '';
             slot.appendChild(pieceCopy);
             
-            // Cacher la pièce originale si elle vient du conteneur
             if (origin === 'pieces-container') {
                 piece.style.display = 'none';
             }
             
-            // Enregistrer la pièce placée
             placedPieces[slotKey] = piece.id;
+            checkVictory(); // Vérifier après chaque placement
         }
         
-        function checkSolution() {
+        function checkVictory() {
             let correctCount = 0;
+            let totalPieces = 0;
             
             for (const slotKey in placedPieces) {
+                totalPieces++;
                 const pieceId = placedPieces[slotKey];
                 const piece = document.getElementById(pieceId);
                 
@@ -357,15 +362,27 @@
                 }
             }
             
-            if (correctCount === 9) {
-                document.getElementById('victory-message').textContent = 'Bravo ! Vous avez résolu le puzzle !';
+            const victoryMessage = document.getElementById('victory-message');
+            
+            if (correctCount === 9 && totalPieces === 9) {
+                victoryMessage.textContent = 'Bravo ! Vous avez résolu le puzzle !';
+                victoryMessage.classList.add('victory-animation');
+                
+                // Animation des pièces
+                document.querySelectorAll('#puzzle-board .piece-in-slot').forEach(piece => {
+                    piece.style.animation = 'pulse 1.5s infinite';
+                });
             } else {
-                document.getElementById('victory-message').textContent = `Pas encore ! ${correctCount}/9 pièces sont à la bonne place.`;
+                victoryMessage.textContent = '';
+                victoryMessage.classList.remove('victory-animation');
+                
+                document.querySelectorAll('#puzzle-board .piece-in-slot').forEach(piece => {
+                    piece.style.animation = '';
+                });
             }
         }
         
         document.getElementById('new-game-btn').addEventListener('click', initGame);
-        document.getElementById('check-button').addEventListener('click', checkSolution);
         
         initGame();
     </script>
