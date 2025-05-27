@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Détection Automatique</title>
+    <title>Puzzle avec Mélange Aléatoire</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -132,14 +132,10 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-        
-        #check-button {
-            background-color: #2ecc71;
-        }
     </style>
 </head>
 <body>
-    <h1>Puzzle avec Détection Automatique</h1>
+    <h1>Puzzle avec Mélange Aléatoire</h1>
     
     <div id="controls">
         <button id="new-game-btn">Nouvelle Partie</button>
@@ -279,6 +275,49 @@
             });
         }
         
+        function shufflePieces() {
+            // Mélanger les pièces dans le plateau de gauche
+            const board = document.getElementById('puzzle-board');
+            const shuffledPieces = [...pieces].sort(() => Math.random() - 0.5);
+            
+            // Vider toutes les cases
+            slots.forEach(slot => {
+                slot.innerHTML = '';
+            });
+            
+            // Placer les pièces mélangées dans les cases
+            shuffledPieces.forEach((piece, index) => {
+                if (index < slots.length) {
+                    const slot = slots[index];
+                    const pieceCopy = document.createElement('div');
+                    pieceCopy.className = 'piece-in-slot';
+                    pieceCopy.style.backgroundImage = `url('${IMAGE_URL}')`;
+                    pieceCopy.style.backgroundPosition = piece.style.backgroundPosition;
+                    
+                    pieceCopy.draggable = true;
+                    pieceCopy.addEventListener('dragstart', e => {
+                        draggedPiece = piece;
+                        draggedPieceOrigin = slot.dataset.key;
+                        e.dataTransfer.setData('text/plain', piece.id);
+                    });
+                    
+                    slot.appendChild(pieceCopy);
+                    placedPieces[slot.dataset.key] = piece.id;
+                    
+                    // Cacher la pièce originale
+                    piece.style.display = 'none';
+                }
+            });
+            
+            // Placer les pièces restantes dans le conteneur de droite
+            const container = document.getElementById('pieces-container');
+            for (let i = slots.length; i < shuffledPieces.length; i++) {
+                const piece = shuffledPieces[i];
+                piece.style.display = 'block';
+                container.appendChild(piece);
+            }
+        }
+        
         function returnPieceToContainer(piece, origin) {
             if (origin && origin !== 'pieces-container') {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${origin}"]`);
@@ -290,20 +329,7 @@
             
             piece.style.display = 'block';
             document.getElementById('pieces-container').appendChild(piece);
-            checkVictory(); // Vérifier après avoir retiré une pièce
-        }
-        
-        function shufflePieces() {
-            const container = document.getElementById('pieces-container');
-            
-            pieces.forEach(piece => {
-                piece.style.display = 'block';
-                container.appendChild(piece);
-            });
-            
-            slots.forEach(slot => {
-                slot.innerHTML = '';
-            });
+            checkVictory();
         }
         
         function placePiece(piece, slot, origin) {
@@ -345,7 +371,7 @@
             }
             
             placedPieces[slotKey] = piece.id;
-            checkVictory(); // Vérifier après chaque placement
+            checkVictory();
         }
         
         function checkVictory() {
@@ -368,7 +394,6 @@
                 victoryMessage.textContent = 'Bravo ! Vous avez résolu le puzzle !';
                 victoryMessage.classList.add('victory-animation');
                 
-                // Animation des pièces
                 document.querySelectorAll('#puzzle-board .piece-in-slot').forEach(piece => {
                     piece.style.animation = 'pulse 1.5s infinite';
                 });
