@@ -3,135 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>3x3 Puzzle</title>
+  <title>Puzzle 3x3 - Drag and Drop</title>
   <style>
     body {
+      margin: 0;
+      padding: 20px;
       font-family: Arial, sans-serif;
-      background: #f0f8ff;
+      background-color: #f0f8ff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
     }
 
     h1 {
+      text-align: center;
       color: #333;
     }
 
     #puzzle-container {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      width: 90vmin;
-      height: 90vmin;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
       gap: 2px;
-      border: 4px solid #0077cc;
       margin-top: 20px;
     }
 
     .tile {
-      background-size: 300%;
-      background-repeat: no-repeat;
+      width: 100px;
+      height: 100px;
+      background-image: url('https://images.unsplash.com/photo-1602524819845-38a6b9c2b90c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');
+      background-size: 300px 300px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
       cursor: grab;
-      user-select: none;
     }
 
     .drag-over {
-      outline: 2px dashed #0077cc;
+      outline: 2px dashed #3498db;
     }
 
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    @media (max-width: 400px) {
+      #puzzle-container {
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+      }
+
+      .tile {
+        width: 80px;
+        height: 80px;
+        background-size: 240px 240px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>3x3 Puzzle Game</h1>
+
+  <h1>🧩 What's your Puzzle IQ?</h1>
   <div id="puzzle-container"></div>
-  <button onclick="shuffleTiles()">Shuffle</button>
 
   <script>
-    const imageUrl = "https://source.unsplash.com/random/600x600";
-    const container = document.getElementById("puzzle-container");
+    const container = document.getElementById('puzzle-container');
+    const tiles = [];
 
-    let positions = [];
-    for (let y = 0; y < 3; y++) {
-      for (let x = 0; x < 3; x++) {
-        positions.push({ x, y });
-      }
+    for (let i = 0; i < 9; i++) {
+      const tile = document.createElement('div');
+      tile.classList.add('tile');
+      tile.setAttribute('draggable', true);
+      tile.style.backgroundPosition = `-${(i % 3) * 100}px -${Math.floor(i / 3) * 100}px`;
+      tile.dataset.index = i;
+      tiles.push(tile);
     }
 
-    function createTile(x, y, index) {
-      const tile = document.createElement("div");
-      tile.className = "tile";
-      tile.draggable = true;
-      tile.dataset.index = index;
-      tile.style.backgroundImage = `url(${imageUrl})`;
-      tile.style.backgroundPosition = `${-x * 100}% ${-y * 100}%`;
-      tile.style.width = "100%";
-      tile.style.height = "100%";
+    // Shuffle
+    tiles.sort(() => Math.random() - 0.5);
 
-      tile.addEventListener("dragstart", dragStart);
-      tile.addEventListener("dragover", dragOver);
-      tile.addEventListener("dragleave", dragLeave);
-      tile.addEventListener("drop", drop);
-      tile.addEventListener("dragend", dragEnd);
-      return tile;
-    }
+    tiles.forEach(tile => container.appendChild(tile));
 
-    function setupPuzzle() {
-      container.innerHTML = "";
-      positions.forEach((pos, index) => {
-        const tile = createTile(pos.x, pos.y, index);
-        container.appendChild(tile);
-      });
-    }
+    let dragged;
 
-    function shuffleTiles() {
-      positions.sort(() => Math.random() - 0.5);
-      setupPuzzle();
-    }
-
-    let dragged = null;
-
-    function dragStart(e) {
+    container.addEventListener('dragstart', e => {
       dragged = e.target;
-      e.dataTransfer.effectAllowed = "move";
-    }
+    });
 
-    function dragOver(e) {
+    container.addEventListener('dragover', e => {
       e.preventDefault();
-      if (e.target !== dragged) e.target.classList.add("drag-over");
-    }
-
-    function dragLeave(e) {
-      e.target.classList.remove("drag-over");
-    }
-
-    function drop(e) {
-      e.preventDefault();
-      e.target.classList.remove("drag-over");
-
-      if (dragged && e.target !== dragged) {
-        const draggedIndex = [...container.children].indexOf(dragged);
-        const targetIndex = [...container.children].indexOf(e.target);
-
-        container.insertBefore(dragged, container.children[targetIndex]);
-        container.insertBefore(e.target, container.children[draggedIndex]);
+      if (e.target.classList.contains('tile')) {
+        e.target.classList.add('drag-over');
       }
-    }
+    });
 
-    function dragEnd() {
-      document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
-    }
+    container.addEventListener('dragleave', e => {
+      if (e.target.classList.contains('tile')) {
+        e.target.classList.remove('drag-over');
+      }
+    });
 
-    setupPuzzle();
+    container.addEventListener('drop', e => {
+      if (e.target.classList.contains('tile') && dragged !== e.target) {
+        e.target.classList.remove('drag-over');
+
+        const draggedIndex = Array.from(container.children).indexOf(dragged);
+        const targetIndex = Array.from(container.children).indexOf(e.target);
+
+        if (draggedIndex > -1 && targetIndex > -1) {
+          container.insertBefore(dragged, container.children[targetIndex]);
+          container.insertBefore(e.target, container.children[draggedIndex]);
+        }
+      }
+    });
   </script>
+
 </body>
 </html>
