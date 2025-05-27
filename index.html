@@ -2,118 +2,336 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Puzzle Europe - Carte intégrée</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de Géographie - Europe</title>
     <style>
+        :root {
+            --bg-light: #f0f8ff;
+            --bg-dark: #1a1a2e;
+            --card-light: #ffffff;
+            --card-dark: #16213e;
+            --text-light: #333;
+            --text-dark: #f5f5f5;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f0f8ff;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
             padding: 20px;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            transition: all 0.3s;
         }
-        #game-container {
-            display: flex;
-            justify-content: space-between;
-            max-width: 900px;
-            margin: 0 auto;
+        
+        body.dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
         }
-        #map {
-            width: 600px;
-            height: 500px;
-            background-color: #e6f7ff;
-            border: 2px solid #333;
-            position: relative;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500"><path fill="none" stroke="black" d="M100,100 L150,120 L180,90..."/>[Vecteurs simplifiés de l\'Europe]</svg>');
-        }
-        #countries-pool {
-            width: 200px;
+        
+        .game-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            max-width: 1000px;
+            margin: 0 auto;
         }
-        .country {
-            padding: 10px;
+        
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin-bottom: 20px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #europe-map {
+            width: 100%;
+            height: 100%;
+            background-color: #e8f4f8;
+        }
+        
+        .country-slot {
+            position: absolute;
+            padding: 8px 12px;
             background: #4CAF50;
             color: white;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: grab;
-            text-align: center;
-            user-select: none;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .country.placed {
-            background: #8BC34A;
+        
+        .country-slot.placed {
+            background: #2ecc71;
             cursor: default;
         }
-        #message {
-            margin-top: 20px;
+        
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        #country-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .country-item {
+            padding: 8px 12px;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .country-item.used {
+            opacity: 0.3;
+            cursor: default;
+        }
+        
+        #score-display {
+            font-size: 1.2em;
             font-weight: bold;
-            color: #2e7d32;
+            margin-bottom: 20px;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .country-highlight {
+            fill: #f1c40f;
+            opacity: 0.7;
+            transition: all 0.3s;
+        }
+        
+        .country-correct {
+            fill: #2ecc71;
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
-    <h1>🌍 Puzzle Europe - Placez les pays</h1>
-    <p>Glissez-déposez les pays sur leur emplacement</p>
+    <button class="theme-toggle" id="themeToggle">🌙 Mode Sombre</button>
     
-    <div id="game-container">
-        <div id="map"></div>
-        <div id="countries-pool">
-            <div class="country" draggable="true" data-name="France">France</div>
-            <div class="country" draggable="true" data-name="Allemagne">Allemagne</div>
-            <div class="country" draggable="true" data-name="Espagne">Espagne</div>
-            <div class="country" draggable="true" data-name="Italie">Italie</div>
-            <div class="country" draggable="true" data-name="Pologne">Pologne</div>
+    <div class="game-container">
+        <h1>Jeu de Géographie - Europe</h1>
+        <p>Placez les pays sur leur emplacement correct</p>
+        
+        <div id="controls">
+            <div id="score-display">Score: <span id="score">0</span></div>
+            <button id="reset-btn">Réinitialiser</button>
+        </div>
+        
+        <div id="country-pool">
+            <!-- Les pays seront ajoutés ici par JavaScript -->
+        </div>
+        
+        <div id="map-container">
+            <!-- Carte SVG de l'Europe -->
+            <svg id="europe-map" viewBox="0 0 1000 850" xmlns="http://www.w3.org/2000/svg">
+                <!-- France -->
+                <path id="france" d="M200,350 L210,360 L220,350 L230,340 L240,330 L250,320 L260,310 L270,300 L280,290 L290,280 L300,270 L310,260 L320,250 L330,240 L340,230 L350,220 L360,210 L370,200 L380,190 L390,180 L400,170 L410,160 L420,150 L430,140 L440,130 L450,120 L460,110 L470,100 L480,90 L490,80 L500,70" fill="#ecf0f1" stroke="#7f8c8d"/>
+                <!-- Allemagne -->
+                <path id="germany" d="M300,300 L310,310 L320,320 L330,330 L340,340 L350,350 L360,360 L370,370 L380,380 L390,390 L400,400 L410,410 L420,420 L430,430 L440,440 L450,450 L460,460 L470,470 L480,480 L490,490 L500,500" fill="#ecf0f1" stroke="#7f8c8d"/>
+                <!-- Espagne -->
+                <path id="spain" d="M150,400 L160,410 L170,420 L180,430 L190,440 L200,450 L210,460 L220,470 L230,480 L240,490 L250,500 L260,510 L270,520 L280,530 L290,540 L300,550" fill="#ecf0f1" stroke="#7f8c8d"/>
+                <!-- Italie -->
+                <path id="italy" d="M280,450 L290,460 L300,470 L310,480 L320,490 L330,500 L340,510 L350,520 L360,530 L370,540 L380,550 L390,560 L400,570" fill="#ecf0f1" stroke="#7f8c8d"/>
+                <!-- Plus de pays... -->
+            </svg>
         </div>
     </div>
-    
-    <div id="message"></div>
-    
+
     <script>
-        // Positions approximatives (x,y) en pixels sur la carte
-        const countryPositions = {
-            "France": { x: 150, y: 200 },
-            "Allemagne": { x: 250, y: 150 },
-            "Espagne": { x: 100, y: 250 },
-            "Italie": { x: 220, y: 250 },
-            "Pologne": { x: 300, y: 150 }
-        };
+        // Données des pays
+        const countries = [
+            { id: "france", name: "France", x: 200, y: 350 },
+            { id: "germany", name: "Allemagne", x: 300, y: 300 },
+            { id: "spain", name: "Espagne", x: 150, y: 400 },
+            { id: "italy", name: "Italie", x: 280, y: 450 },
+            { id: "uk", name: "Royaume-Uni", x: 180, y: 250 },
+            { id: "portugal", name: "Portugal", x: 100, y: 380 }
+        ];
 
-        let draggedItem = null;
+        let score = 0;
+        let draggedCountry = null;
+        let offsetX, offsetY;
 
-        // Drag & Drop
-        document.querySelectorAll('.country').forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                draggedItem = e.target;
-                e.dataTransfer.setData('text/plain', e.target.dataset.name);
+        // Initialisation du jeu
+        function initGame() {
+            const countryPool = document.getElementById('country-pool');
+            
+            // Mélanger les pays
+            const shuffledCountries = [...countries].sort(() => Math.random() - 0.5);
+            
+            // Créer les éléments de pays
+            shuffledCountries.forEach(country => {
+                const div = document.createElement('div');
+                div.className = 'country-item';
+                div.textContent = country.name;
+                div.dataset.id = country.id;
+                div.draggable = true;
+                
+                div.addEventListener('dragstart', (e) => {
+                    draggedCountry = div;
+                    offsetX = e.offsetX;
+                    offsetY = e.offsetY;
+                    highlightCountry(country.id);
+                    e.dataTransfer.setData('text/plain', country.id);
+                });
+                
+                div.addEventListener('dragend', () => {
+                    unhighlightCountry(country.id);
+                });
+                
+                countryPool.appendChild(div);
             });
-        });
-
-        document.getElementById('map').addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-
-        document.getElementById('map').addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (!draggedItem) return;
             
-            const countryName = e.dataTransfer.getData('text/plain');
-            const pos = countryPositions[countryName];
+            // Gestion du drop sur la carte
+            document.getElementById('europe-map').addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
             
-            // Vérifier si le dépôt est proche de la position cible (±30px)
-            if (
-                Math.abs(e.offsetX - pos.x) < 30 &&
-                Math.abs(e.offsetY - pos.y) < 30
-            ) {
-                draggedItem.style.position = 'absolute';
-                draggedItem.style.left = `${pos.x}px`;
-                draggedItem.style.top = `${pos.y}px`;
-                draggedItem.classList.add('placed');
-                draggedItem.draggable = false;
-                document.getElementById('map').appendChild(draggedItem);
-                document.getElementById('message').textContent = `Correct ! ${countryName} est bien placé.`;
-            } else {
-                document.getElementById('message').textContent = "Essaie encore ! Ce n'est pas la bonne position.";
+            document.getElementById('europe-map').addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (!draggedCountry) return;
+                
+                const countryId = e.dataTransfer.getData('text/plain');
+                const country = countries.find(c => c.id === countryId);
+                
+                if (country) {
+                    const svgRect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - svgRect.left;
+                    const y = e.clientY - svgRect.top;
+                    
+                    // Vérifier si le pays est placé au bon endroit
+                    const targetPath = document.getElementById(country.id);
+                    if (targetPath && isPointInPath(targetPath, x, y)) {
+                        placeCountry(country, x, y);
+                        updateScore(10);
+                        markCountryCorrect(country.id);
+                    } else {
+                        updateScore(-5);
+                    }
+                }
+            });
+            
+            // Bouton de réinitialisation
+            document.getElementById('reset-btn').addEventListener('click', resetGame);
+            
+            // Bouton de thème
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        }
+        
+        // Placer un pays sur la carte
+        function placeCountry(country, x, y) {
+            const countryElement = document.createElement('div');
+            countryElement.className = 'country-slot placed';
+            countryElement.textContent = country.name;
+            countryElement.style.left = `${x - offsetX}px`;
+            countryElement.style.top = `${y - offsetY}px`;
+            
+            document.getElementById('map-container').appendChild(countryElement);
+            
+            // Marquer le pays comme utilisé
+            draggedCountry.classList.add('used');
+            draggedCountry.draggable = false;
+            draggedCountry = null;
+        }
+        
+        // Mettre à jour le score
+        function updateScore(points) {
+            score += points;
+            document.getElementById('score').textContent = score;
+        }
+        
+        // Vérifier si un point est dans un chemin SVG
+        function isPointInPath(path, x, y) {
+            const point = document.getElementById('europe-map').createSVGPoint();
+            point.x = x;
+            point.y = y;
+            return path.isPointInFill(point);
+        }
+        
+        // Mettre en évidence un pays
+        function highlightCountry(countryId) {
+            const path = document.getElementById(countryId);
+            if (path) path.classList.add('country-highlight');
+        }
+        
+        // Retirer la mise en évidence
+        function unhighlightCountry(countryId) {
+            const path = document.getElementById(countryId);
+            if (path) path.classList.remove('country-highlight');
+        }
+        
+        // Marquer un pays comme correct
+        function markCountryCorrect(countryId) {
+            const path = document.getElementById(countryId);
+            if (path) {
+                path.classList.add('country-correct');
+                path.classList.remove('country-highlight');
             }
-        });
+        }
+        
+        // Réinitialiser le jeu
+        function resetGame() {
+            score = 0;
+            document.getElementById('score').textContent = score;
+            
+            // Supprimer tous les pays placés
+            document.querySelectorAll('.country-slot').forEach(el => el.remove());
+            
+            // Réactiver tous les pays
+            document.querySelectorAll('.country-item').forEach(el => {
+                el.classList.remove('used');
+                el.draggable = true;
+            });
+            
+            // Réinitialiser les couleurs des pays
+            countries.forEach(country => {
+                const path = document.getElementById(country.id);
+                if (path) {
+                    path.classList.remove('country-correct');
+                    path.classList.remove('country-highlight');
+                }
+            });
+        }
+        
+        // Basculer entre les thèmes clair/sombre
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            document.getElementById('themeToggle').textContent = isDark ? '☀️ Mode Clair' : '🌙 Mode Sombre';
+            localStorage.setItem('darkMode', isDark);
+        }
+        
+        // Charger le thème sauvegardé
+        function loadTheme() {
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeToggle').textContent = '☀️ Mode Clair';
+            }
+        }
+        
+        // Démarrer le jeu
+        loadTheme();
+        initGame();
     </script>
 </body>
 </html>
