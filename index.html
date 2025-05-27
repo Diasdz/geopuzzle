@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Glisser-Déposer</title>
+    <title>Puzzle Complet avec Toutes les Pièces</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -33,7 +33,7 @@
         #puzzle-board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
+            gap: 2px;
             width: 600px;
             height: 600px;
             margin: 20px 0;
@@ -59,11 +59,9 @@
             z-index: 10;
         }
         
-        .puzzle-piece.dragging {
-            opacity: 0.8;
-            transform: scale(1.05);
-            z-index: 100;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        .puzzle-piece.empty {
+            background: #bdc3c7;
+            visibility: hidden;
         }
         
         #controls {
@@ -126,7 +124,7 @@
 </head>
 <body>
     <div class="game-container">
-        <h1>Puzzle Glisser-Déposer</h1>
+        <h1>Puzzle Complet avec Toutes les Pièces</h1>
         
         <div id="controls">
             <button id="new-game-btn">Nouvelle Partie</button>
@@ -203,6 +201,8 @@
             // Configurer le plateau
             puzzleBoard.innerHTML = '';
             puzzleBoard.style.gridTemplateColumns = `repeat(${gameState.size}, 1fr)`;
+            puzzleBoard.style.width = `${gameState.size * 200}px`;
+            puzzleBoard.style.height = `${gameState.size * 200}px`;
             
             // Choisir une image aléatoire
             const imageUrl = IMAGES[Math.floor(Math.random() * IMAGES.length)];
@@ -210,10 +210,11 @@
             // Créer les pièces
             gameState.pieces = [];
             const pieceCount = gameState.size * gameState.size;
+            const pieceSize = 100 / gameState.size;
             
             for (let i = 0; i < pieceCount; i++) {
                 const piece = document.createElement('div');
-                piece.className = 'puzzle-piece';
+                piece.className = i === gameState.emptyIndex ? 'puzzle-piece empty' : 'puzzle-piece';
                 piece.dataset.index = i;
                 
                 // Calculer la position dans la grille
@@ -221,9 +222,11 @@
                 const col = i % gameState.size;
                 
                 // Style de la pièce
-                piece.style.backgroundImage = `url(${imageUrl})`;
-                piece.style.backgroundSize = `${gameState.size * 100}%`;
-                piece.style.backgroundPosition = `${(col / (gameState.size-1)) * 100}% ${(row / (gameState.size-1)) * 100}%`;
+                if (i !== gameState.emptyIndex) {
+                    piece.style.backgroundImage = `url(${imageUrl})`;
+                    piece.style.backgroundSize = `${gameState.size * 100}%`;
+                    piece.style.backgroundPosition = `${(col / (gameState.size-1)) * 100}% ${(row / (gameState.size-1)) * 100}%`;
+                }
                 
                 // Gestion du glisser-déposer
                 piece.draggable = true;
@@ -234,13 +237,11 @@
                 puzzleBoard.appendChild(piece);
                 gameState.pieces.push({
                     element: piece,
-                    correctIndex: i,
+                    correctRow: row,
+                    correctCol: col,
                     currentIndex: i
                 });
             }
-            
-            // Cacher la dernière pièce (vide)
-            gameState.pieces[gameState.emptyIndex].element.style.visibility = 'hidden';
             
             // Mélanger les pièces
             shufflePieces();
@@ -260,15 +261,23 @@
         }
 
         function handleDragStart(e) {
+            const index = parseInt(e.target.dataset.index);
+            if (index === gameState.emptyIndex) {
+                e.preventDefault();
+                return;
+            }
+            
             gameState.draggedPiece = e.target;
-            gameState.draggedIndex = parseInt(e.target.dataset.index);
+            gameState.draggedIndex = index;
             e.target.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.target.dataset.index);
+            e.dataTransfer.setData('text/plain', index);
             e.dataTransfer.effectAllowed = 'move';
         }
 
         function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
+            if (gameState.draggedPiece) {
+                gameState.draggedPiece.classList.remove('dragging');
+            }
         }
 
         function handleDrop(e) {
@@ -286,7 +295,7 @@
         }
 
         function tryMovePiece(index) {
-            if (isAdjacent(index, gameState.emptyIndex)) {
+            if (index !== gameState.emptyIndex && isAdjacent(index, gameState.emptyIndex)) {
                 movePiece(index);
             }
         }
@@ -303,15 +312,19 @@
             gameState.emptyIndex = index;
             
             // Mettre à jour le DOM
-            puzzleBoard.insertBefore(piece.element, emptyPiece.element);
-            
-            // Afficher/Masquer les pièces
-            piece.element.style.visibility = 'visible';
-            emptyPiece.element.style.visibility = 'hidden';
-            
-            // Mettre à jour les données
             piece.element.dataset.index = emptyIndex;
             emptyPiece.element.dataset.index = index;
+            
+            // Échanger les positions dans le DOM
+            puzzleBoard.insertBefore(piece.element, emptyPiece.element.nextSibling);
+            
+            // Mettre à jour les classes
+            piece.element.classList.remove('empty');
+            emptyPiece.element.classList.add('empty');
+            
+            // Mettre à jour le style
+            piece.element.style.visibility = 'visible';
+            emptyPiece.element.style.visibility = 'hidden';
             
             // Incrémenter le compteur
             gameState.moves++;
@@ -352,8 +365,8 @@
         }
 
         function checkVictory() {
-            const isSolved = gameState.pieces.every(piece => 
-                piece.currentIndex === piece.correctIndex
+            const isSolved = gameState.pieces.every((piece, index) => 
+                piece.currentIndex === index
             );
             
             if (isSolved) {
@@ -361,7 +374,9 @@
                 victoryMessageEl.textContent = `Félicitations ! Résolu en ${gameState.time}s et ${gameState.moves} coups.`;
                 
                 // Afficher toutes les pièces
-                gameState.pieces[gameState.emptyIndex].element.style.visibility = 'visible';
+                gameState.pieces.forEach(piece => {
+                    piece.element.style.visibility = 'visible';
+                });
             }
         }
 
