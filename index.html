@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Échanges Libres</title>
+    <title>Puzzle avec Retour aux Pièces</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -63,6 +63,7 @@
             background-color: #ecf0f1;
             padding: 10px;
             border-radius: 5px;
+            position: relative;
         }
         
         .puzzle-piece {
@@ -91,6 +92,7 @@
             width: 100%;
             height: 100%;
             background-size: 400px 400px;
+            cursor: grab;
         }
         
         #controls {
@@ -126,7 +128,7 @@
     </style>
 </head>
 <body>
-    <h1>Puzzle avec Échanges Libres</h1>
+    <h1>Puzzle avec Retour aux Pièces</h1>
     
     <div id="controls">
         <button id="new-game-btn">Nouvelle Partie</button>
@@ -175,7 +177,6 @@
                     const yPos = -row * (400 / 3);
                     slot.style.backgroundPosition = `${xPos}px ${yPos}px`;
                     
-                    // Gestion du dépôt
                     slot.addEventListener('dragover', e => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'move';
@@ -224,7 +225,6 @@
                     piece.style.backgroundImage = `url('${IMAGE_URL}')`;
                     piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
                     
-                    // Gestion du glisser
                     piece.draggable = true;
                     piece.addEventListener('dragstart', e => {
                         draggedPiece = piece;
@@ -243,6 +243,45 @@
                     pieces.push(piece);
                 }
             }
+            
+            // Activer le dépôt dans la zone de pièces
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+            
+            container.addEventListener('dragenter', e => {
+                e.preventDefault();
+                container.style.backgroundColor = '#d5dbdb';
+            });
+            
+            container.addEventListener('dragleave', () => {
+                container.style.backgroundColor = '#ecf0f1';
+            });
+            
+            container.addEventListener('drop', e => {
+                e.preventDefault();
+                container.style.backgroundColor = '#ecf0f1';
+                
+                if (draggedPiece && draggedPieceOrigin !== 'pieces-container') {
+                    returnPieceToContainer(draggedPiece, draggedPieceOrigin);
+                }
+            });
+        }
+        
+        function returnPieceToContainer(piece, origin) {
+            // Retirer la pièce de son emplacement précédent
+            if (origin && origin !== 'pieces-container') {
+                const originSlot = document.querySelector(`.puzzle-slot[data-key="${origin}"]`);
+                if (originSlot) {
+                    originSlot.innerHTML = '';
+                    delete placedPieces[origin];
+                }
+            }
+            
+            // Réactiver la pièce originale
+            piece.style.display = 'block';
+            document.getElementById('pieces-container').appendChild(piece);
         }
         
         function shufflePieces() {
@@ -275,8 +314,7 @@
                 const existingPieceId = placedPieces[slotKey];
                 const existingPiece = document.getElementById(existingPieceId);
                 if (existingPiece) {
-                    existingPiece.style.display = 'block';
-                    document.getElementById('pieces-container').appendChild(existingPiece);
+                    returnPieceToContainer(existingPiece, slotKey);
                 }
             }
             
@@ -286,7 +324,7 @@
             pieceCopy.style.backgroundImage = `url('${IMAGE_URL}')`;
             pieceCopy.style.backgroundPosition = piece.style.backgroundPosition;
             
-            // Rendre la copie déplaçable aussi
+            // Rendre la copie déplaçable
             pieceCopy.draggable = true;
             pieceCopy.addEventListener('dragstart', e => {
                 draggedPiece = piece;
