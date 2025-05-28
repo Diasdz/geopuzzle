@@ -187,9 +187,7 @@
                     
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
-                    piece.addEventListener('dragend', () => {
-                        piece.classList.remove('dragging');
-                    });
+                    piece.addEventListener('dragend', handleDragEnd);
                     
                     document.getElementById('pieces-container').appendChild(piece);
                     pieces.push(piece);
@@ -206,6 +204,10 @@
             e.target.classList.add('dragging');
         }
         
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+        }
+        
         function handleDrop(e) {
             e.preventDefault();
             if (!draggedPiece) return;
@@ -219,37 +221,38 @@
             
             // Récupérer la pièce existante dans la case cible
             const existingPieceId = placedPieces[slotKey];
+            const existingPiece = existingPieceId ? document.getElementById(existingPieceId) : null;
             
-            // Échanger les pièces si nécessaire
+            // Gérer l'origine de la pièce déplacée
             if (isFromBoard) {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
                 
-                if (existingPieceId) {
-                    // Déplacer la pièce existante vers l'origine
-                    const existingPiece = document.getElementById(existingPieceId);
+                if (existingPiece) {
+                    // Échanger les pièces
                     const existingPieceCopy = existingPiece.cloneNode(true);
                     existingPieceCopy.className = 'piece-in-slot';
                     existingPieceCopy.addEventListener('dragstart', handleDragStart);
+                    existingPieceCopy.addEventListener('dragend', handleDragEnd);
                     
                     originSlot.innerHTML = '';
                     originSlot.appendChild(existingPieceCopy);
-                    placedPieces[draggedPieceOrigin] = existingPieceId;
+                    placedPieces[draggedPieceOrigin] = existingPiece.id;
                 } else {
-                    // Vider l'origine si la cible est vide
+                    // Déplacer vers une case vide
                     originSlot.innerHTML = '';
                     delete placedPieces[draggedPieceOrigin];
                 }
-            } else if (existingPieceId) {
-                // Remettre la pièce existante dans la zone de pièces
-                const existingPiece = document.getElementById(existingPieceId);
+            } else if (existingPiece) {
+                // Remplacer une pièce du plateau par une pièce de la réserve
                 existingPiece.style.display = 'block';
                 document.getElementById('pieces-container').appendChild(existingPiece);
             }
             
-            // Placer la pièce déplacée
+            // Placer la pièce déplacée dans la case cible
             const pieceCopy = draggedPiece.cloneNode(true);
             pieceCopy.className = 'piece-in-slot';
             pieceCopy.addEventListener('dragstart', handleDragStart);
+            pieceCopy.addEventListener('dragend', handleDragEnd);
             
             slot.innerHTML = '';
             slot.appendChild(pieceCopy);
