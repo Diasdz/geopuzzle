@@ -217,39 +217,36 @@
             const slotKey = slot.dataset.key;
             const isFromBoard = draggedPieceOrigin !== 'pieces-container';
             
-            // Récupérer la pièce existante dans la case cible (si elle existe)
+            // Récupérer la pièce existante dans la case cible
             const existingPieceId = placedPieces[slotKey];
-            const existingPiece = existingPieceId ? document.getElementById(existingPieceId) : null;
             
-            // Si on vient d'une case du plateau
+            // Échanger les pièces si nécessaire
             if (isFromBoard) {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
                 
-                // Si la case cible est occupée, on échange les pièces
-                if (existingPiece) {
+                if (existingPieceId) {
                     // Déplacer la pièce existante vers l'origine
+                    const existingPiece = document.getElementById(existingPieceId);
                     const existingPieceCopy = existingPiece.cloneNode(true);
                     existingPieceCopy.className = 'piece-in-slot';
                     existingPieceCopy.addEventListener('dragstart', handleDragStart);
                     
                     originSlot.innerHTML = '';
                     originSlot.appendChild(existingPieceCopy);
-                    placedPieces[draggedPieceOrigin] = existingPiece.id;
-                } 
-                // Si la case cible est vide, on vide juste l'origine
-                else {
+                    placedPieces[draggedPieceOrigin] = existingPieceId;
+                } else {
+                    // Vider l'origine si la cible est vide
                     originSlot.innerHTML = '';
                     delete placedPieces[draggedPieceOrigin];
                 }
-            }
-            // Si on vient de la zone de pièces et que la case cible est occupée
-            else if (existingPiece) {
+            } else if (existingPieceId) {
                 // Remettre la pièce existante dans la zone de pièces
+                const existingPiece = document.getElementById(existingPieceId);
                 existingPiece.style.display = 'block';
                 document.getElementById('pieces-container').appendChild(existingPiece);
             }
             
-            // Placer la pièce déplacée dans la case cible
+            // Placer la pièce déplacée
             const pieceCopy = draggedPiece.cloneNode(true);
             pieceCopy.className = 'piece-in-slot';
             pieceCopy.addEventListener('dragstart', handleDragStart);
@@ -257,7 +254,7 @@
             slot.innerHTML = '';
             slot.appendChild(pieceCopy);
             
-            // Si on vient de la zone de pièces, masquer l'original
+            // Masquer l'original si vient de la zone de pièces
             if (!isFromBoard) {
                 draggedPiece.style.display = 'none';
             }
