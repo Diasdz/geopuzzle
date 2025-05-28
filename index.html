@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle avec Cases Vierges</title>
+    <title>Puzzle 3x3</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,49 +22,13 @@
             margin-bottom: 20px;
         }
         
-        #menu {
-            text-align: center;
-            margin: 20px 0;
-            max-width: 500px;
-            width: 100%;
-        }
-        
-        .difficulty-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .difficulty-btn {
-            padding: 12px 0;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .easy { background-color: #2ecc71; }
-        .medium { background-color: #f39c12; }
-        .hard { background-color: #e74c3c; }
-        .expert { background-color: #9b59b6; }
-        
-        .game-container {
-            display: none;
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
         .game-area {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
         }
         
         #puzzle-board {
@@ -72,7 +36,11 @@
             background-color: #f8f9fa;
             padding: 5px;
             display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
             gap: 2px;
+            width: 300px;
+            height: 300px;
             margin: 0 auto;
         }
         
@@ -96,7 +64,8 @@
             padding: 15px;
             border-radius: 8px;
             margin-top: 20px;
-            max-width: 100%;
+            width: 100%;
+            max-width: 320px;
         }
         
         .puzzle-piece {
@@ -104,23 +73,25 @@
             border: 2px solid #fff;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
             transition: all 0.2s;
-            background-size: 400px 400px;
+            background-size: 300px 300px;
+            width: 90px;
+            height: 90px;
         }
         
         .piece-in-slot {
             width: 100%;
             height: 100%;
             cursor: grab;
-            background-size: 400px 400px;
+            background-size: 300px 300px;
         }
         
-        .controls {
+        #controls {
+            margin: 20px 0;
             display: flex;
             gap: 15px;
-            margin: 20px 0;
         }
         
-        .controls button {
+        button {
             padding: 10px 20px;
             border: none;
             border-radius: 5px;
@@ -133,11 +104,6 @@
             color: white;
         }
         
-        #menu-btn {
-            background-color: #95a5a6;
-            color: white;
-        }
-        
         #victory-message {
             font-size: 1.5rem;
             color: #27ae60;
@@ -147,83 +113,41 @@
     </style>
 </head>
 <body>
-    <h1>Puzzle avec Cases Vierges</h1>
+    <h1>Puzzle 3x3</h1>
     
-    <div id="menu">
-        <h2>Choisissez votre difficulté :</h2>
-        <div class="difficulty-buttons">
-            <button class="difficulty-btn easy" data-size="3">Facile (3×3)</button>
-            <button class="difficulty-btn medium" data-size="4">Moyen (4×4)</button>
-            <button class="difficulty-btn hard" data-size="5">Difficile (5×5)</button>
-            <button class="difficulty-btn expert" data-size="6">Expert (6×6)</button>
+    <div class="game-area">
+        <div id="controls">
+            <button id="new-game-btn">Nouvelle Partie</button>
         </div>
-    </div>
-    
-    <div class="game-container">
-        <div class="game-area">
-            <div class="controls">
-                <button id="new-game-btn">Nouvelle Partie</button>
-                <button id="menu-btn">Retour au Menu</button>
-            </div>
-            
-            <div id="puzzle-board"></div>
-            <div id="pieces-container"></div>
-            
-            <div id="victory-message"></div>
-        </div>
+        
+        <div id="puzzle-board"></div>
+        <div id="pieces-container"></div>
+        
+        <div id="victory-message"></div>
     </div>
 
     <script>
-        const PUZZLE_IMAGES = {
-            3: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
-            4: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
-            5: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80',
-            6: 'https://images.unsplash.com/photo-1615494937439-1a5e5f1910c9?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=400&q=80'
-        };
+        const IMAGE_URL = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80';
+        const PUZZLE_SIZE = 3;
+        const PIECE_SIZE = 100; // Taille de chaque pièce en pixels
         
-        let puzzleSize = 3;
         let pieces = [];
         let slots = [];
         let placedPieces = {};
         let draggedPiece = null;
         let draggedPieceOrigin = null;
-        let fullImageSize = 400; // Taille de l'image originale
-        
-        function showMenu() {
-            document.getElementById('menu').style.display = 'block';
-            document.querySelector('.game-container').style.display = 'none';
-        }
-        
-        function startGame(size) {
-            puzzleSize = size;
-            document.getElementById('menu').style.display = 'none';
-            document.querySelector('.game-container').style.display = 'block';
-            initGame();
-        }
         
         function initGame() {
-            const container = document.getElementById('pieces-container');
-            const board = document.getElementById('puzzle-board');
-            
             // Réinitialiser
-            container.innerHTML = '';
-            board.innerHTML = '';
+            document.getElementById('puzzle-board').innerHTML = '';
+            document.getElementById('pieces-container').innerHTML = '';
             document.getElementById('victory-message').textContent = '';
             placedPieces = {};
             
-            // Configurer la taille du plateau
-            const boardSize = Math.min(500, window.innerWidth - 40);
-            const slotSize = Math.floor(boardSize / puzzleSize);
-            
-            board.style.width = `${slotSize * puzzleSize}px`;
-            board.style.height = `${slotSize * puzzleSize}px`;
-            board.style.gridTemplateColumns = `repeat(${puzzleSize}, 1fr)`;
-            board.style.gridTemplateRows = `repeat(${puzzleSize}, 1fr)`;
-            
             // Créer les cases vierges
             slots = [];
-            for (let row = 0; row < puzzleSize; row++) {
-                for (let col = 0; col < puzzleSize; col++) {
+            for (let row = 0; row < PUZZLE_SIZE; row++) {
+                for (let col = 0; col < PUZZLE_SIZE; col++) {
                     const slot = document.createElement('div');
                     slot.className = 'puzzle-slot';
                     slot.dataset.row = row;
@@ -233,17 +157,15 @@
                     slot.addEventListener('dragover', e => e.preventDefault());
                     slot.addEventListener('drop', handleDrop);
                     
-                    board.appendChild(slot);
+                    document.getElementById('puzzle-board').appendChild(slot);
                     slots.push(slot);
                 }
             }
             
             // Créer les pièces avec le bon fragment d'image
             pieces = [];
-            const pieceSize = fullImageSize / puzzleSize;
-            
-            for (let row = 0; row < puzzleSize; row++) {
-                for (let col = 0; col < puzzleSize; col++) {
+            for (let row = 0; row < PUZZLE_SIZE; row++) {
+                for (let col = 0; col < PUZZLE_SIZE; col++) {
                     const piece = document.createElement('div');
                     piece.className = 'puzzle-piece';
                     piece.id = `piece-${row}-${col}`;
@@ -251,22 +173,17 @@
                     piece.dataset.col = col;
                     piece.dataset.correctKey = `${row}-${col}`;
                     
-                    // Taille affichée
-                    piece.style.width = `${slotSize}px`;
-                    piece.style.height = `${slotSize}px`;
-                    
                     // Position du fragment dans l'image originale
-                    const xPos = -col * pieceSize;
-                    const yPos = -row * pieceSize;
+                    const xPos = -col * PIECE_SIZE;
+                    const yPos = -row * PIECE_SIZE;
                     
-                    piece.style.backgroundImage = `url('${PUZZLE_IMAGES[puzzleSize]}')`;
+                    piece.style.backgroundImage = `url('${IMAGE_URL}')`;
                     piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
-                    piece.style.backgroundSize = `${fullImageSize}px ${fullImageSize}px`;
                     
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
                     
-                    container.appendChild(piece);
+                    document.getElementById('pieces-container').appendChild(piece);
                     pieces.push(piece);
                 }
             }
@@ -311,7 +228,6 @@
             pieceCopy.className = 'piece-in-slot';
             pieceCopy.style.backgroundImage = draggedPiece.style.backgroundImage;
             pieceCopy.style.backgroundPosition = draggedPiece.style.backgroundPosition;
-            pieceCopy.style.backgroundSize = draggedPiece.style.backgroundSize;
             pieceCopy.addEventListener('dragstart', handleDragStart);
             
             slot.innerHTML = '';
@@ -343,21 +259,13 @@
                 if (piece && piece.dataset.correctKey === slotKey) correct++;
             }
             
-            if (correct === puzzleSize * puzzleSize) {
+            if (correct === PUZZLE_SIZE * PUZZLE_SIZE) {
                 document.getElementById('victory-message').textContent = 'Félicitations ! Vous avez gagné !';
             }
         }
         
         // Événements
-        document.querySelectorAll('.difficulty-btn').forEach(btn => {
-            btn.addEventListener('click', () => startGame(parseInt(btn.dataset.size)));
-        });
-        
         document.getElementById('new-game-btn').addEventListener('click', initGame);
-        document.getElementById('menu-btn').addEventListener('click', showMenu);
-        
-        // Initialiser
-        showMenu();
         
         // Gestion du glisser-déposer
         document.addEventListener('dragover', e => e.preventDefault());
@@ -376,6 +284,9 @@
                 }
             }
         });
+        
+        // Démarrer le jeu
+        initGame();
     </script>
 </body>
 </html>
