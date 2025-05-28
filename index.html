@@ -1,65 +1,299 @@
-<script>
-    // ... (le reste du code reste identique jusqu'à la fonction handleDrop)
-
-    function handleDrop(e) {
-        e.preventDefault();
-        if (!draggedPiece) return;
-        
-        const slot = e.target.closest('.puzzle-slot');
-        if (!slot) return;
-        
-        const slotKey = slot.dataset.key;
-        const pieceToPlace = draggedPiece;
-        
-        // Si la case cible est occupée, on récupère la pièce existante
-        let existingPiece = null;
-        if (placedPieces[slotKey]) {
-            existingPiece = document.getElementById(placedPieces[slotKey]);
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle 3x3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
         
-        // Si la pièce vient d'une autre case
-        if (draggedPieceOrigin !== 'pieces-container') {
-            const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
-            if (originSlot) {
-                // On place la pièce existante (si elle existe) dans l'emplacement d'origine
-                if (existingPiece) {
-                    const pieceCopy = existingPiece.cloneNode();
-                    pieceCopy.className = 'piece-in-slot';
-                    pieceCopy.style.backgroundImage = existingPiece.style.backgroundImage;
-                    pieceCopy.style.backgroundPosition = existingPiece.style.backgroundPosition;
-                    pieceCopy.addEventListener('dragstart', handleDragStart);
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        #puzzle-board {
+            border: 3px solid #34495e;
+            background-color: #f8f9fa;
+            padding: 5px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+        }
+        
+        .puzzle-slot {
+            border: 1px dashed #7f8c8d;
+            position: relative;
+            background-color: #e9ecef;
+        }
+        
+        .puzzle-slot.highlight {
+            border: 2px solid #27ae60;
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+        
+        #pieces-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 320px;
+        }
+        
+        .puzzle-piece {
+            cursor: grab;
+            border: 2px solid #fff;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            background-size: 300px 300px;
+            width: 90px;
+            height: 90px;
+        }
+        
+        .piece-in-slot {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            background-size: 300px 300px;
+        }
+        
+        #controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #new-game-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        #victory-message {
+            font-size: 1.5rem;
+            color: #27ae60;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .dragging {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Puzzle 3x3</h1>
+    
+    <div class="game-area">
+        <div id="controls">
+            <button id="new-game-btn">Nouvelle Partie</button>
+        </div>
+        
+        <div id="puzzle-board"></div>
+        <div id="pieces-container"></div>
+        
+        <div id="victory-message"></div>
+    </div>
+
+    <script>
+        const IMAGE_URL = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&h=300&q=80';
+        const PUZZLE_SIZE = 3;
+        const PIECE_SIZE = 100;
+        
+        let pieces = [];
+        let slots = [];
+        let placedPieces = {};
+        let draggedPiece = null;
+        let draggedPieceOrigin = null;
+        
+        function initGame() {
+            document.getElementById('puzzle-board').innerHTML = '';
+            document.getElementById('pieces-container').innerHTML = '';
+            document.getElementById('victory-message').textContent = '';
+            placedPieces = {};
+            
+            // Créer les cases
+            slots = [];
+            for (let row = 0; row < PUZZLE_SIZE; row++) {
+                for (let col = 0; col < PUZZLE_SIZE; col++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'puzzle-slot';
+                    slot.dataset.row = row;
+                    slot.dataset.col = col;
+                    slot.dataset.key = `${row}-${col}`;
                     
-                    originSlot.innerHTML = '';
-                    originSlot.appendChild(pieceCopy);
-                    placedPieces[draggedPieceOrigin] = existingPiece.id;
-                } else {
-                    originSlot.innerHTML = '';
-                    delete placedPieces[draggedPieceOrigin];
+                    slot.addEventListener('dragover', e => e.preventDefault());
+                    slot.addEventListener('drop', handleDrop);
+                    
+                    document.getElementById('puzzle-board').appendChild(slot);
+                    slots.push(slot);
                 }
             }
-        } else if (existingPiece) {
-            // Si on vient de la zone de pièces et qu'il y a une pièce dans la case
-            existingPiece.style.display = 'block';
-            document.getElementById('pieces-container').appendChild(existingPiece);
+            
+            // Créer les pièces
+            pieces = [];
+            for (let row = 0; row < PUZZLE_SIZE; row++) {
+                for (let col = 0; col < PUZZLE_SIZE; col++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'puzzle-piece';
+                    piece.id = `piece-${row}-${col}`;
+                    piece.dataset.row = row;
+                    piece.dataset.col = col;
+                    piece.dataset.correctKey = `${row}-${col}`;
+                    
+                    const xPos = -col * PIECE_SIZE;
+                    const yPos = -row * PIECE_SIZE;
+                    
+                    piece.style.backgroundImage = `url('${IMAGE_URL}')`;
+                    piece.style.backgroundPosition = `${xPos}px ${yPos}px`;
+                    
+                    piece.draggable = true;
+                    piece.addEventListener('dragstart', handleDragStart);
+                    
+                    document.getElementById('pieces-container').appendChild(piece);
+                    pieces.push(piece);
+                }
+            }
+            
+            shufflePieces();
         }
         
-        // Placer la nouvelle pièce
-        const pieceCopy = pieceToPlace.cloneNode();
-        pieceCopy.className = 'piece-in-slot';
-        pieceCopy.style.backgroundImage = pieceToPlace.style.backgroundImage;
-        pieceCopy.style.backgroundPosition = pieceToPlace.style.backgroundPosition;
-        pieceCopy.addEventListener('dragstart', handleDragStart);
-        
-        slot.innerHTML = '';
-        slot.appendChild(pieceCopy);
-        
-        if (draggedPieceOrigin === 'pieces-container') {
-            pieceToPlace.style.display = 'none';
+        function handleDragStart(e) {
+            draggedPiece = e.target;
+            draggedPieceOrigin = e.target.closest('.puzzle-slot')?.dataset.key || 'pieces-container';
+            e.dataTransfer.setData('text/plain', e.target.id);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
         }
         
-        placedPieces[slotKey] = pieceToPlace.id;
-        checkVictory();
-    }
-
-    // ... (le reste du code reste identique)
-</script>
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggedPiece) return;
+            
+            const slot = e.target.closest('.puzzle-slot');
+            if (!slot) return;
+            
+            const slotKey = slot.dataset.key;
+            const isFromBoard = draggedPieceOrigin !== 'pieces-container';
+            
+            // Si la case cible est occupée, on récupère la pièce existante
+            const existingPieceId = placedPieces[slotKey];
+            const existingPiece = existingPieceId ? document.getElementById(existingPieceId) : null;
+            
+            // Si on vient du plateau et qu'on dépose sur une case occupée
+            if (isFromBoard && existingPiece) {
+                // On déplace la pièce existante vers l'emplacement d'origine
+                const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
+                if (originSlot) {
+                    const existingPieceCopy = existingPiece.cloneNode(true);
+                    originSlot.innerHTML = '';
+                    originSlot.appendChild(existingPieceCopy);
+                    placedPieces[draggedPieceOrigin] = existingPiece.id;
+                }
+            } 
+            // Si on vient de la zone de pièces et qu'on dépose sur une case occupée
+            else if (existingPiece) {
+                existingPiece.style.display = 'block';
+                document.getElementById('pieces-container').appendChild(existingPiece);
+            }
+            
+            // Placer la pièce déplacée
+            const pieceCopy = draggedPiece.cloneNode(true);
+            pieceCopy.className = 'piece-in-slot';
+            pieceCopy.style.backgroundImage = draggedPiece.style.backgroundImage;
+            pieceCopy.style.backgroundPosition = draggedPiece.style.backgroundPosition;
+            pieceCopy.addEventListener('dragstart', handleDragStart);
+            
+            slot.innerHTML = '';
+            slot.appendChild(pieceCopy);
+            
+            // Mettre à jour l'affichage et les données
+            if (!isFromBoard) {
+                draggedPiece.style.display = 'none';
+            }
+            
+            placedPieces[slotKey] = draggedPiece.id;
+            checkVictory();
+        }
+        
+        function shufflePieces() {
+            const container = document.getElementById('pieces-container');
+            const shuffled = [...pieces].sort(() => Math.random() - 0.5);
+            
+            container.innerHTML = '';
+            shuffled.forEach(piece => {
+                piece.style.display = 'block';
+                container.appendChild(piece);
+            });
+        }
+        
+        function checkVictory() {
+            let correct = 0;
+            for (const [slotKey, pieceId] of Object.entries(placedPieces)) {
+                const piece = document.getElementById(pieceId);
+                if (piece && piece.dataset.correctKey === slotKey) correct++;
+            }
+            
+            if (correct === PUZZLE_SIZE * PUZZLE_SIZE) {
+                document.getElementById('victory-message').textContent = 'Félicitations ! Vous avez gagné !';
+            }
+        }
+        
+        document.getElementById('new-game-btn').addEventListener('click', initGame);
+        
+        document.addEventListener('dragover', e => e.preventDefault());
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            if (draggedPiece && draggedPieceOrigin !== 'pieces-container') {
+                const piece = document.getElementById(draggedPiece.id);
+                if (piece) {
+                    piece.style.display = 'block';
+                    document.getElementById('pieces-container').appendChild(piece);
+                    
+                    const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
+                    if (originSlot) originSlot.innerHTML = '';
+                    
+                    delete placedPieces[draggedPieceOrigin];
+                    checkVictory();
+                }
+            }
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>
