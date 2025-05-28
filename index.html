@@ -50,11 +50,6 @@
             background-color: #e9ecef;
         }
         
-        .puzzle-slot.highlight {
-            border: 2px solid #27ae60;
-            background-color: rgba(39, 174, 96, 0.1);
-        }
-        
         #pieces-container {
             display: flex;
             flex-wrap: wrap;
@@ -157,7 +152,15 @@
                     slot.dataset.col = col;
                     slot.dataset.key = `${row}-${col}`;
                     
-                    slot.addEventListener('dragover', e => e.preventDefault());
+                    slot.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        slot.style.backgroundColor = 'rgba(39, 174, 96, 0.1)';
+                    });
+                    
+                    slot.addEventListener('dragleave', () => {
+                        slot.style.backgroundColor = '#e9ecef';
+                    });
+                    
                     slot.addEventListener('drop', handleDrop);
                     
                     document.getElementById('puzzle-board').appendChild(slot);
@@ -184,6 +187,9 @@
                     
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
+                    piece.addEventListener('dragend', () => {
+                        piece.classList.remove('dragging');
+                    });
                     
                     document.getElementById('pieces-container').appendChild(piece);
                     pieces.push(piece);
@@ -197,7 +203,7 @@
             draggedPiece = e.target;
             draggedPieceOrigin = e.target.closest('.puzzle-slot')?.dataset.key || 'pieces-container';
             e.dataTransfer.setData('text/plain', e.target.id);
-            setTimeout(() => e.target.classList.add('dragging'), 0);
+            e.target.classList.add('dragging');
         }
         
         function handleDrop(e) {
@@ -207,45 +213,56 @@
             const slot = e.target.closest('.puzzle-slot');
             if (!slot) return;
             
+            slot.style.backgroundColor = '#e9ecef';
             const slotKey = slot.dataset.key;
             const isFromBoard = draggedPieceOrigin !== 'pieces-container';
             
-            // Si la case cible est occupée, on récupère la pièce existante
+            // Récupérer la pièce existante dans la case cible (si elle existe)
             const existingPieceId = placedPieces[slotKey];
             const existingPiece = existingPieceId ? document.getElementById(existingPieceId) : null;
             
-            // Si on vient du plateau et qu'on dépose sur une case occupée
-            if (isFromBoard && existingPiece) {
-                // On déplace la pièce existante vers l'emplacement d'origine
+            // Si on vient d'une case du plateau
+            if (isFromBoard) {
                 const originSlot = document.querySelector(`.puzzle-slot[data-key="${draggedPieceOrigin}"]`);
-                if (originSlot) {
+                
+                // Si la case cible est occupée, on échange les pièces
+                if (existingPiece) {
+                    // Déplacer la pièce existante vers l'origine
                     const existingPieceCopy = existingPiece.cloneNode(true);
+                    existingPieceCopy.className = 'piece-in-slot';
+                    existingPieceCopy.addEventListener('dragstart', handleDragStart);
+                    
                     originSlot.innerHTML = '';
                     originSlot.appendChild(existingPieceCopy);
                     placedPieces[draggedPieceOrigin] = existingPiece.id;
+                } 
+                // Si la case cible est vide, on vide juste l'origine
+                else {
+                    originSlot.innerHTML = '';
+                    delete placedPieces[draggedPieceOrigin];
                 }
-            } 
-            // Si on vient de la zone de pièces et qu'on dépose sur une case occupée
+            }
+            // Si on vient de la zone de pièces et que la case cible est occupée
             else if (existingPiece) {
+                // Remettre la pièce existante dans la zone de pièces
                 existingPiece.style.display = 'block';
                 document.getElementById('pieces-container').appendChild(existingPiece);
             }
             
-            // Placer la pièce déplacée
+            // Placer la pièce déplacée dans la case cible
             const pieceCopy = draggedPiece.cloneNode(true);
             pieceCopy.className = 'piece-in-slot';
-            pieceCopy.style.backgroundImage = draggedPiece.style.backgroundImage;
-            pieceCopy.style.backgroundPosition = draggedPiece.style.backgroundPosition;
             pieceCopy.addEventListener('dragstart', handleDragStart);
             
             slot.innerHTML = '';
             slot.appendChild(pieceCopy);
             
-            // Mettre à jour l'affichage et les données
+            // Si on vient de la zone de pièces, masquer l'original
             if (!isFromBoard) {
                 draggedPiece.style.display = 'none';
             }
             
+            // Mettre à jour les données
             placedPieces[slotKey] = draggedPiece.id;
             checkVictory();
         }
